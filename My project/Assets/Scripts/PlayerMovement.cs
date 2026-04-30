@@ -1,20 +1,42 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement")]
     public float moveSpeed;
-    public float smoothSpeed = 10f; // higher = snappier, lower = smoother
+
     public float groundDrag;
 
     public float jumpForce;
-    public float jumpCd;
+    public float jumpCooldown;
     public float airMultiplier;
     bool readyToJump;
+    bool isCrouching;
+
+    [Header("Jump Consistency")]
+    public float coyoteTime = 0.15f;
+    private float coyoteTimer;
+
+    private bool jumpRequested;
+
+    [Header("Gravity")]
+    public float fallMultiplier = 2.5f;
+    public float lowJumpMultiplier = 2f;
+
+    [HideInInspector] public float walkSpeed;
+    [HideInInspector] public float sprintSpeed;
 
     [Header("Keybinds")]
     public KeyCode jumpKey = KeyCode.Space;
+    public KeyCode crouchKey = KeyCode.LeftControl;
 
+    [Header("Crouch")]
+    public float crouchSpeed;
+    public float crouchYScale;
+    private float startYScale;
 
     [Header("Ground Check")]
     public float playerHeight;
@@ -30,30 +52,57 @@ public class PlayerMovement : MonoBehaviour
 
     Rigidbody rb;
 
-    void Start()
+    [HideInInspector] public TextMeshProUGUI text_speed;
+
+    private void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
 
         readyToJump = true;
+
+        startYScale = transform.localScale.y;
     }
 
-    void Update()
+    private void Update()
     {
-        // Ground check
+        // ground check
         grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
-        Debug.DrawRay(transform.position, Vector3.down * (playerHeight * 0.5f + 0.2f), grounded ? Color.green : Color.red);
+
+
+
+        if (grounded)
+            coyoteTimer = coyoteTime;
+        else
+            coyoteTimer -= Time.deltaTime;
+
+        if (Input.GetKeyDown(jumpKey))
+            jumpRequested = true;
 
         MyInput();
         SpeedControl();
 
-        // Drag only on ground
-        rb.linearDamping = grounded ? groundDrag : 0f;
+        // handle drag
+        if (grounded)
+            rb.linearDamping = groundDrag;
+        else
+            rb.linearDamping = 0;
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         MovePlayer();
+
+        if (jumpRequested && readyToJump && coyoteTimer > 0f)
+        {
+            readyToJump = false;
+            Jump();
+            Invoke(nameof(ResetJump), jumpCooldown);
+
+            jumpRequested = false;
+        }
+
+        HandleBetterGravity();
     }
 
     private void MyInput()
@@ -61,49 +110,75 @@ public class PlayerMovement : MonoBehaviour
         horizontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
 
-        if(Input.GetKeyDown(jumpKey) && readyToJump && grounded)
+        // when to jump
+        if (Input.GetKey(jumpKey))
         {
-            readyToJump = false;
+            jumpRequested = true;
+        }
 
-            Jump();
+        if (Input.GetKeyDown(crouchKey))
+        {
+            isCrouching = true;
+            transform.localScale = new Vector3(transform.localScale.x, crouchYScale, transform.localScale.z);
+            rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
 
-            Invoke(nameof(ResetJump), jumpCd);
+        }
+        if (Input.GetKeyUp(crouchKey))
+        {
+            isCrouching = false;
+            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
         }
     }
 
     private void MovePlayer()
     {
+        // calculate movement direction
         moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
 
-        Vector3 targetVelocity = moveDirection.normalized * moveSpeed;
-        Vector3 currentVelocity = rb.linearVelocity;
+        float currentSpeed = isCrouching ? moveSpeed * 0.5f : moveSpeed;
 
-        // Smoothly move toward target velocity
-        Vector3 velocityChange = targetVelocity - new Vector3(currentVelocity.x, 0f, currentVelocity.z);
-
+        // on ground
         if (grounded)
-            rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
+            rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
 
+        // in air
         else if (!grounded)
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
-
-            rb.AddForce(velocityChange * smoothSpeed, ForceMode.Acceleration);
     }
 
     private void SpeedControl()
     {
         Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
-        if(flatVel.magnitude > moveSpeed)
+        float currentSpeed = isCrouching ? moveSpeed * 0.5f : moveSpeed;
+
+        // limit velocity if needed
+        if (flatVel.magnitude > moveSpeed)
         {
             Vector3 limitedVel = flatVel.normalized * moveSpeed;
             rb.linearVelocity = new Vector3(limitedVel.x, rb.linearVelocity.y, limitedVel.z);
         }
 
+        text_speed.SetText("Speed: " + flatVel.magnitude);
+    }
+
+    private void HandleBetterGravity()
+    {
+        // fall
+        if (rb.linearVelocity.y < 0)
+        {
+            rb.AddForce(Vector3.down * fallMultiplier, ForceMode.Acceleration);
+        }
+        // going up but player released jump early
+        else if (rb.linearVelocity.y > 0 && !Input.GetKey(jumpKey))
+        {
+            rb.AddForce(Vector3.down * lowJumpMultiplier, ForceMode.Acceleration);
+        }
     }
 
     private void Jump()
     {
+        // reset y velocity
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
         rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);

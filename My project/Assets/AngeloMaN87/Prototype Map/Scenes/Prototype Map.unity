@@ -532,6 +532,7 @@ GameObject:
   - component: {fileID: 1954061229}
   - component: {fileID: 1954061230}
   - component: {fileID: 1954061232}
+  - component: {fileID: 1954061233}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -620,17 +621,53 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   moveSpeed: 12
-  smoothSpeed: 12
   groundDrag: 2
-  jumpForce: 8
-  jumpCd: 0.25
-  airMultiplier: 0.5
+  jumpForce: 7.5
+  jumpCooldown: 0
+  airMultiplier: 2
+  coyoteTime: 0.15
+  fallMultiplier: 40
+  lowJumpMultiplier: 2
+  walkSpeed: 0
+  sprintSpeed: 0
   jumpKey: 32
+  crouchKey: 306
+  crouchSpeed: 0
+  crouchYScale: 0
   playerHeight: 3
   whatIsGround:
     serializedVersion: 2
     m_Bits: 64
   orientation: {fileID: 1481630998}
+  text_speed: {fileID: 0}
+--- !u!114 &1954061233
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1954061227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3e8b1835936e194c9a741efa88231b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WallRide
+  orientation: {fileID: 1481630998}
+  whatIsWall:
+    serializedVersion: 2
+    m_Bits: 128
+  wallCheckDistance: 1.55
+  wallRunForce: 12
+  wallStickForce: 65
+  wallUpForce: 8
+  maxWallRunTime: 1.5
+  wallJumpForce: 20
+  wallJumpUpForce: 20
+  whatIsGround:
+    serializedVersion: 2
+    m_Bits: 64
+  playerHeight: 2
+  minInputToWallRun: 0
 --- !u!1001 &8354416668599502667
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -690,6 +727,10 @@ PrefabInstance:
     - target: {fileID: 4603156116648498359, guid: fc5a676d2c90b3d4f8a22e369c35950d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7725550455073907413, guid: fc5a676d2c90b3d4f8a22e369c35950d, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
