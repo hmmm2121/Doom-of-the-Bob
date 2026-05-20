@@ -4,6 +4,7 @@ using System.Collections;
 public class Weapon : MonoBehaviour
 {
     public GameObject bulletPrefab;
+    public GameObject droppedGunPrefab;
     public Transform bulletSpawn;
 
     [Header("Shotgun Settings")]
@@ -38,6 +39,11 @@ public class Weapon : MonoBehaviour
     public float tossDuration = 0.45f;
     public float tossStartBelow = 0.5f;
     public float tossStartTilt = 40f;
+    public float throwForwardAmount = 4f;
+
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip fireSound;
 
     private Vector3 originalWeaponPosition;
     private Quaternion originalWeaponRotation;
@@ -152,46 +158,42 @@ public class Weapon : MonoBehaviour
     {
         currentState = WeaponState.Reloading;
 
-        // --- Phase 1: Throw gun forward and down in world space ---
-        float elapsed = 0f;
-        Vector3 dropStartWorld = weaponModel.parent.TransformPoint(weaponModel.localPosition);
-        Quaternion dropStartRot = weaponModel.localRotation;
+        // spawns a cloned gun then throws it
+        GameObject droppedGun = Instantiate(droppedGunPrefab);
 
-        // Throw forward (into screen) and down
-        Vector3 dropEndWorld = dropStartWorld + new Vector3(0f, -0.8f, 2.5f);
-        Quaternion dropEndRot = dropStartRot * Quaternion.Euler(60f, 30f, -80f); // tumble
+        foreach (var script in droppedGun.GetComponents<MonoBehaviour>())
+            Destroy(script);
 
-        while (elapsed < dropDuration)
-        {
-            float t = elapsed / dropDuration;
-            float curved = t * t; // accelerates like gravity
+        droppedGun.transform.SetParent(null);
+        droppedGun.transform.position = weaponModel.parent.TransformPoint(weaponModel.localPosition);
+        droppedGun.transform.rotation = weaponModel.parent.rotation * weaponModel.localRotation;
 
-            // Convert world position back to local for the weaponModel
-            Vector3 worldPos = Vector3.Lerp(dropStartWorld, dropEndWorld, curved);
-            weaponModel.localPosition = weaponModel.parent.InverseTransformPoint(worldPos);
-            weaponModel.localRotation = Quaternion.Lerp(dropStartRot, dropEndRot, curved);
+        Rigidbody rb = droppedGun.AddComponent<Rigidbody>();
+        rb.mass = 1f;
+        rb.linearVelocity = Camera.main.transform.forward * throwForwardAmount + Vector3.up * 1.5f;
+        rb.angularVelocity = new Vector3(
+            Random.Range(3f, 6f),
+            Random.Range(-3f, 3f),
+            Random.Range(2f, 5f)
+        );
 
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
+        Destroy(droppedGun, 2f);
 
-        // Clone before hiding
+        // makes the visual before hiding the real gun to create the illusion of dropping the gun before reloading.
         GameObject newGunVisual = Instantiate(weaponModel.gameObject, weaponModel.parent);
-
-        // Strip any scripts from clone
         foreach (var script in newGunVisual.GetComponents<MonoBehaviour>())
             Destroy(script);
+        newGunVisual.SetActive(false);
 
         weaponModel.gameObject.SetActive(false);
 
-        // --- Phase 2: Brief gap ---
+        // a small gap between dropping the old gun and tossing the new one to make the reload feel more natural.
         yield return new WaitForSeconds(gapDuration);
 
-        // --- Phase 3: Toss new gun from below ---
-        elapsed = 0f;
+        // brings the gun up from below
+        float elapsed = 0f;  // declared here
         newGunVisual.SetActive(true);
 
-        // Force correct local position explicitly
         Vector3 tossStartPos = originalWeaponPosition + new Vector3(-0.05f, -tossStartBelow, 0f);
         Quaternion tossStartRot = originalWeaponRotation * Quaternion.Euler(0f, 0f, tossStartTilt);
 
@@ -216,7 +218,6 @@ public class Weapon : MonoBehaviour
         yield return null;
         Destroy(newGunVisual);
 
-        // Fix crosshair — reset recoil position so spread collapses
         weaponModel.localPosition = originalWeaponPosition;
         weaponModel.localRotation = originalWeaponRotation;
 
@@ -232,6 +233,11 @@ public class Weapon : MonoBehaviour
 
     private void FireShotgun()
     {
+        if (audioSource != null && fireSound != null)
+        {
+            audioSource.PlayOneShot(fireSound);
+        }
+
         CrosshairUI crosshair = FindObjectOfType<CrosshairUI>();
 
         for (int i = 0; i < pelletCount; i++)
@@ -244,13 +250,13 @@ public class Weapon : MonoBehaviour
             Quaternion spreadRotation = bulletSpawn.rotation * Quaternion.Euler(ySpread, xSpread, 0f);
             Vector3 direction = spreadRotation * Vector3.forward;
 
-            // Cast the ray — maxRange drives the pellet distance just like before
-            float maxRange = 15f; // match your Bullet.maxRange value
+            // Cast the ray — maxRange manages the pellet distance
+            float maxRange = 15f; 
             if (Physics.Raycast(bulletSpawn.position, direction, out RaycastHit hit, maxRange))
             {
-                // Distance-based damage falloff (mirrors your Bullet.cs logic)
+                // Distance-based damage falloff 
                 float t = Mathf.Clamp01(hit.distance / maxRange);
-                float damage = Mathf.Lerp(20f, 5f, t); // maxDamage ? minDamage
+                float damage = Mathf.Lerp(20f, 5f, t); 
 
                 if (hit.collider.CompareTag("Target"))
                 {
@@ -259,20 +265,13 @@ public class Weapon : MonoBehaviour
                     {
                         target.TakeDamage(damage);
 
-                        // If this collider is a critical zone, reward ammo once per shot
+                        // if it hits the isCriticalHit part of the tagrgets, then it registers a critical hit and rewards the player with ammo.
                         if (target.isCriticalHit)
                             RegisterCriticalHit();
                     }
                 }
-
-                // Optional: draw a debug line so you can see rays in Scene view
-                Debug.DrawLine(bulletSpawn.position, hit.point, Color.red, 0.5f);
             }
-            else
-            {
-                // Ray missed — draw to max range
-                Debug.DrawRay(bulletSpawn.position, direction * maxRange, Color.yellow, 0.5f);
-            }
+           
         }
 
         // Spike crosshair spread
@@ -295,7 +294,7 @@ public class Weapon : MonoBehaviour
 
     public void RegisterCriticalHit()
     {
-        // Only reward once per shot no matter how many pellets hit
+        // only rewards the player once per shot, so if 8 pellets hit the critical spot, it only registers as 1 critical hit not 8
         if (criticalHitRegisteredThisShot) return;
         criticalHitRegisteredThisShot = true;
 
