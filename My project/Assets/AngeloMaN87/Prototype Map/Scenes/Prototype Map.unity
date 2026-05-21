@@ -622,18 +622,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   moveSpeed: 12
   groundDrag: 2
-  jumpForce: 7.5
-  jumpCooldown: 0
   airMultiplier: 2
+  jumpForce: 7
+  jumpCooldown: 0
   coyoteTime: 0.15
   fallMultiplier: 40
   lowJumpMultiplier: 2
-  walkSpeed: 0
-  sprintSpeed: 0
-  jumpKey: 32
-  crouchKey: 306
-  crouchSpeed: 0
+  doubleJumpForce: 10
+  dashMomentumWindow: 0.6
   crouchYScale: 0
+  crouchKey: 306
+  slamDownForce: 60
+  slamAOERadius: 4
+  slamHitMask:
+    serializedVersion: 2
+    m_Bits: 0
+  drawSlamGizmo: 1
+  slamLandingMomentumRetain: 0.4
+  dashKey: 113
+  dashSpeed: 16
+  dashCoastDuration: 0.35
+  dashCooldown: 2.2
+  dashMomentumBlend: 0.4
+  jumpKey: 32
   playerHeight: 3
   whatIsGround:
     serializedVersion: 2
@@ -657,17 +668,18 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   wallCheckDistance: 1.55
-  wallRunForce: 12
-  wallStickForce: 65
-  wallUpForce: 8
-  maxWallRunTime: 1.5
-  wallJumpForce: 20
-  wallJumpUpForce: 20
   whatIsGround:
     serializedVersion: 2
     m_Bits: 64
   playerHeight: 2
-  minInputToWallRun: 0
+  wallRunSpeed: 14
+  wallStickForce: 50
+  wallUpForce: 5
+  maxWallRunTime: 3
+  wallJumpSideForce: 20
+  wallJumpUpForce: 7
+  wallAcceleration: 13
+  maxTiltAngle: 12
 --- !u!1001 &8354416668599502667
 PrefabInstance:
   m_ObjectHideFlags: 0

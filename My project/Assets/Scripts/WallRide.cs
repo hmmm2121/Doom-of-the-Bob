@@ -1,105 +1,140 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Lúcio-style wall ride.
+/// • Hold Space near a wall  → attach and run along it.
+/// • Release Space           → wall-jump automatically (no button press needed).
+/// • Touch the ground        → detach normally.
+/// </summary>
 public class WallRide : MonoBehaviour
 {
+    // ── inspector ────────────────────────────────────────────────────────────
+
     [Header("References")]
     public Transform orientation;
-    private Rigidbody rb;
 
-    [Header("Wall Detection")]
+    [Header("Wall detection")]
     public LayerMask whatIsWall;
-    public float wallCheckDistance = 0.8f;
-
-    private bool wallLeft;
-    private bool wallRight;
-
-    private RaycastHit leftHit;
-    private RaycastHit rightHit;
-
-    private Vector3 wallNormal;
-
-    [Header("Wall Movement")]
-    public float wallRunForce = 18f;
-    public float wallStickForce = 8f;
-    public float wallUpForce = 3f;
-    public float maxWallRunTime = 1.5f;
-
-    private float wallTimer;
-    private bool isWallRunning;
-
-    [Header("Wall Jump")]
-    public float wallJumpForce = 10f;
-    public float wallJumpUpForce = 6f;
-
-    [Header("Ground Check")]
+    public float wallCheckDistance = 0.7f;
     public LayerMask whatIsGround;
     public float playerHeight = 2f;
 
-    [Header("Wall Run Control")]
-    public float minInputToWallRun = 0.2f;
+    [Header("Wall run")]
+    public float wallRunSpeed = 15f;   // target horizontal speed along wall
+    public float wallStickForce = 18f;   // perpendicular force pressing you into the wall
+    public float wallUpForce = 4f;    // counter-gravity while riding
+    public float maxWallRunTime = 2f;    // hard time limit per continuous ride
 
-    private bool grounded;
+    [Header("Wall jump")]
+    public float wallJumpSideForce = 12f;
+    public float wallJumpUpForce = 10f;
 
-    private void Start()
+    [Header("Feel")]
+    [Tooltip("How quickly the along-wall speed builds up (higher = snappier attach)")]
+    public float wallAcceleration = 10f;
+    [Tooltip("Max camera tilt angle (degrees) – read by your camera script")]
+    public float maxTiltAngle = 12f;
+
+    // ── read-only for other scripts ──────────────────────────────────────────
+
+    /// <summary>Camera tilt target: −1 (left wall) … 0 … +1 (right wall).</summary>
+    public float WallRunTilt { get; private set; }
+    public bool IsWallRunning => isWallRunning;
+
+    // ── private state ────────────────────────────────────────────────────────
+
+    Rigidbody rb;
+
+    bool wallLeft, wallRight;
+    RaycastHit leftHit, rightHit;
+    Vector3 wallNormal;
+    bool lastWallLeft, lastWallRight;   // track wall switches for timer reset
+
+    bool isWallRunning;
+    float wallTimer;
+    bool grounded;
+
+    // cached per-frame along-wall direction
+    Vector3 wallForward;
+
+    // ── lifecycle ────────────────────────────────────────────────────────────
+
+    void Start()
     {
         rb = GetComponent<Rigidbody>();
     }
 
-    private void Update()
+    void Update()
     {
         GroundCheck();
         CheckForWall();
         HandleWallState();
-
-        if (Input.GetKeyDown(KeyCode.Space) && isWallRunning)
-        {
-            WallJump();
-        }
     }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
         if (isWallRunning)
-            WallRunMovement();
+            ApplyWallRunForces();
     }
+
+    // ── wall detection ───────────────────────────────────────────────────────
 
     void GroundCheck()
     {
-        grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.3f, whatIsGround);
+        grounded = Physics.Raycast(transform.position, Vector3.down,
+                       playerHeight * 0.5f + 0.3f, whatIsGround);
     }
 
     void CheckForWall()
     {
-        wallRight = Physics.Raycast(transform.position, orientation.right, out rightHit, wallCheckDistance, whatIsWall);
-        wallLeft = Physics.Raycast(transform.position, -orientation.right, out leftHit, wallCheckDistance, whatIsWall);
+        wallRight = Physics.Raycast(transform.position, orientation.right,
+                        out rightHit, wallCheckDistance, whatIsWall);
+        wallLeft = Physics.Raycast(transform.position, -orientation.right,
+                        out leftHit, wallCheckDistance, whatIsWall);
 
-        if (wallRight)
-            wallNormal = rightHit.normal;
-        else if (wallLeft)
-            wallNormal = leftHit.normal;
+        if (wallRight) wallNormal = rightHit.normal;
+        else if (wallLeft) wallNormal = leftHit.normal;
+        // keep last normal if no wall is detected so jump still works
     }
+
+    // ── state machine ────────────────────────────────────────────────────────
 
     void HandleWallState()
     {
-        float inputMagnitude = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).magnitude;
+        bool holdingSpace = Input.GetKey(KeyCode.Space);
+        bool releasedSpace = Input.GetKeyUp(KeyCode.Space);
+        bool nearWall = wallLeft || wallRight;
 
-        bool canWallRun = !grounded &&
-                          (wallLeft || wallRight) &&
-                          inputMagnitude > minInputToWallRun;
-
-        if (canWallRun)
+        // ── attach ───────────────────────────────────────────────────────────
+        if (!isWallRunning && !grounded && nearWall && holdingSpace && HasForwardInput())
         {
-            if (!isWallRunning)
-                StartWallRun();
-
-            wallTimer -= Time.deltaTime;
-
-            if (wallTimer <= 0)
-                StopWallRun();
+            StartWallRun();
+            return;
         }
-        else
+
+        if (!isWallRunning) return;
+
+        // ── while riding ─────────────────────────────────────────────────────
+
+        // switched to the other wall? reset the timer so you don't get cut short
+        if ((wallLeft != lastWallLeft) || (wallRight != lastWallRight))
         {
-            StopWallRun();
+            wallTimer = maxWallRunTime;
+            lastWallLeft = wallLeft;
+            lastWallRight = wallRight;
+        }
+
+        wallTimer -= Time.deltaTime;
+
+        bool shouldDetach = grounded           // landed
+                         || !nearWall          // ran off the wall's edge
+                         || !holdingSpace      // player released Space
+                         || wallTimer <= 0f;   // time limit hit
+
+        if (shouldDetach)
+        {
+            bool doJump = releasedSpace && !grounded;  // Lúcio: release = jump
+            StopWallRun(doJump);
         }
     }
 
@@ -107,61 +142,83 @@ public class WallRide : MonoBehaviour
     {
         isWallRunning = true;
         wallTimer = maxWallRunTime;
+        lastWallLeft = wallLeft;
+        lastWallRight = wallRight;
 
-        rb.useGravity = false;
+        rb.useGravity = false;   // kill gravity immediately – no blending needed
+
+        // Flatten vertical velocity on attach so there's no upward lurch
+        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
     }
 
-    void StopWallRun()
+    void StopWallRun(bool jumpOff)
     {
         if (!isWallRunning) return;
 
         isWallRunning = false;
-        rb.useGravity = true;
+        rb.useGravity = true;   // gravity back on instantly
+        WallRunTilt = 0f;
+
+        if (jumpOff)
+            DoWallJump();
     }
 
-    void WallRunMovement()
-    {
-        Vector3 wallForward = Vector3.Cross(wallNormal, Vector3.up);
+    // ── forces ───────────────────────────────────────────────────────────────
 
-        if (Vector3.Dot(wallForward, orientation.forward) < 0)
+    void ApplyWallRunForces()
+    {
+        // along-wall direction, oriented toward where the player is looking
+        wallForward = Vector3.Cross(wallNormal, Vector3.up);
+        if (Vector3.Dot(wallForward, orientation.forward) < 0f)
             wallForward = -wallForward;
 
-        // REMOVE velocity INTO wall (IMPORTANT FIX)
-        Vector3 currentVel = rb.linearVelocity;
-        Vector3 intoWall = Vector3.Project(currentVel, -wallNormal);
+        // ── speed control ─────────────────────────────────────────────────
+        // Work only on horizontal speed to avoid fighting the up-force below.
+        Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        float currSpeed = flatVel.magnitude;
 
-        rb.linearVelocity -= intoWall;
+        // Smoothly accelerate toward target speed
+        float targetSpeed = wallRunSpeed;
+        float newSpeed = Mathf.MoveTowards(currSpeed, targetSpeed,
+                                wallAcceleration * Time.fixedDeltaTime);
 
-        // optional: keep movement smooth on wall plane
-        Vector3 alongWallVel = Vector3.ProjectOnPlane(currentVel, wallNormal);
-        rb.linearVelocity = new Vector3(alongWallVel.x, rb.linearVelocity.y, alongWallVel.z);
+        // Only redirect horizontal velocity along the wall; don't kill vertical
+        if (currSpeed > 0.1f)
+        {
+            Vector3 desiredFlat = wallForward * newSpeed;
+            rb.linearVelocity = new Vector3(desiredFlat.x, rb.linearVelocity.y, desiredFlat.z);
+        }
 
-        // forward along wall
-        rb.AddForce(wallForward * wallRunForce, ForceMode.Force);
+        // ── perpendicular stick ───────────────────────────────────────────
+        rb.AddForce(-wallNormal * wallStickForce, ForceMode.Force);
 
-        // reduced stick force (prevents "gluing")
-        float inputMagnitude = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).magnitude;
+        // ── counter gravity ───────────────────────────────────────────────
+        // Apply just enough to cancel gravity, plus a tiny upward bias
+        float gravCancel = -Physics.gravity.y;          // ~9.81 on standard settings
+        rb.AddForce(Vector3.up * (gravCancel + wallUpForce), ForceMode.Acceleration);
 
-        // scale stick force based on player intention
-        float stickMultiplier = Mathf.Clamp(inputMagnitude, 0.2f, 1f);
-
-        rb.AddForce(-wallNormal * wallStickForce * stickMultiplier, ForceMode.Force);
-
-        rb.AddForce(-wallNormal * (wallStickForce * 0.3f), ForceMode.Force);
-
-        // slight upward lift
-        rb.AddForce(Vector3.up * wallUpForce, ForceMode.Force);
+        // ── camera tilt signal ────────────────────────────────────────────
+        WallRunTilt = wallRight ? 1f : -1f;
     }
 
-    void WallJump()
+    // ── wall jump ────────────────────────────────────────────────────────────
+
+    void DoWallJump()
     {
-        StopWallRun();
-
-        Vector3 force =
-            wallNormal * wallJumpForce +
-            Vector3.up * wallJumpUpForce;
-
+        // Zero out vertical velocity for a clean, predictable arc
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        rb.AddForce(force, ForceMode.Impulse);
+
+        // Push away from wall + up
+        Vector3 jumpDir = wallNormal.normalized * wallJumpSideForce
+                        + Vector3.up * wallJumpUpForce;
+        rb.AddForce(jumpDir, ForceMode.Impulse);
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    bool HasForwardInput()
+    {
+        return new Vector2(Input.GetAxisRaw("Horizontal"),
+                           Input.GetAxisRaw("Vertical")).sqrMagnitude > 0.04f;
     }
 }

@@ -1,190 +1,402 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 
+/// <summary>
+/// PlayerMovement — with ground slam replacing slide.
+///
+/// SLAM
+///   • Hold crouch key while airborne → slams straight down.
+///   • On impact: dead stop (all velocity zeroed), AOE sphere cast below.
+///   • Damage/HP logic is stubbed via OnSlamImpact() — wire it up when ready.
+///   • Visual/audio hooks: SlamStart() and SlamImpact() are partial methods
+///     you can extend without touching core logic.
+/// </summary>
 public class PlayerMovement : MonoBehaviour
 {
+    // ── inspector ────────────────────────────────────────────────────────────
+
     [Header("Movement")]
-    public float moveSpeed;
+    public float moveSpeed = 10f;
+    public float groundDrag = 6f;
+    public float airMultiplier = 0.4f;
 
-    public float groundDrag;
-
-    public float jumpForce;
-    public float jumpCooldown;
-    public float airMultiplier;
-    bool readyToJump;
-    bool isCrouching;
-
-    [Header("Jump Consistency")]
+    [Header("Jump")]
+    public float jumpForce = 12f;
+    public float jumpCooldown = 0.25f;
     public float coyoteTime = 0.15f;
-    private float coyoteTimer;
-
-    private bool jumpRequested;
-
-    [Header("Gravity")]
-    public float fallMultiplier = 2.5f;
+    public float fallMultiplier = 3f;
     public float lowJumpMultiplier = 2f;
 
-    [HideInInspector] public float walkSpeed;
-    [HideInInspector] public float sprintSpeed;
+    [Header("Double Jump")]
+    public float doubleJumpForce = 10f;
+    [Tooltip("Seconds after a dash where double jump preserves full horizontal speed.")]
+    public float dashMomentumWindow = 0.6f;
+
+    [Header("Crouch")]
+    public float crouchYScale = 0.5f;
+    public KeyCode crouchKey = KeyCode.LeftControl;
+
+    [Header("Slam")]
+    [Tooltip("Downward force applied every FixedUpdate while slamming.")]
+    public float slamDownForce = 60f;
+    [Tooltip("Radius of the AOE sphere on impact.")]
+    public float slamAOERadius = 4f;
+    [Tooltip("Layers the AOE hits.")]
+    public LayerMask slamHitMask;
+    [Tooltip("Visual/debug: draw the AOE gizmo in the editor.")]
+    public bool drawSlamGizmo = true;
+    [Tooltip("How much horizontal momentum carries through on landing (0 = dead stop, 1 = full skid).")]
+    [Range(0f, 1f)]
+    public float slamLandingMomentumRetain = 0.4f;
+
+    [Header("Dash")]
+    public KeyCode dashKey = KeyCode.Q;
+    public float dashSpeed = 26f;
+    public float dashCoastDuration = 0.35f;
+    public float dashCooldown = 0.8f;
+    [Range(0f, 1f)]
+    public float dashMomentumBlend = 0.4f;
 
     [Header("Keybinds")]
     public KeyCode jumpKey = KeyCode.Space;
-    public KeyCode crouchKey = KeyCode.LeftControl;
-
-    [Header("Crouch")]
-    public float crouchSpeed;
-    public float crouchYScale;
-    private float startYScale;
 
     [Header("Ground Check")]
-    public float playerHeight;
+    public float playerHeight = 2f;
     public LayerMask whatIsGround;
-    bool grounded;
 
+    [Header("References")]
     public Transform orientation;
+    [HideInInspector] public TextMeshProUGUI text_speed;
 
-    float horizontalInput;
-    float verticalInput;
-
-    Vector3 moveDirection;
+    // ── private state ────────────────────────────────────────────────────────
 
     Rigidbody rb;
 
-    [HideInInspector] public TextMeshProUGUI text_speed;
+    bool grounded;
+    bool readyToJump = true;
+    bool jumpRequested;
+    bool doubleJumpRequested;
+    float coyoteTimer;
+    bool hasDoubleJump;
 
-    private void Start()
+    bool isCrouching;
+    float startYScale;
+
+    // slam
+    bool isSlamming;          // descending fast toward ground
+    bool slamLanded;          // one-frame flag: impact happened this frame
+    Vector3 lastSlamGizmoPos;  // for debug gizmo
+
+    // dash
+    bool readyToDash = true;
+    bool isDashing;
+    float dashHotTimer;
+    bool dashIsHot => dashHotTimer > 0f;
+
+    float horizontalInput;
+    float verticalInput;
+    Vector3 moveDirection;
+
+    // ── lifecycle ────────────────────────────────────────────────────────────
+
+    void Start()
     {
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
-
-        readyToJump = true;
-
         startYScale = transform.localScale.y;
     }
 
-    private void Update()
+    void Update()
     {
-        // ground check
-        grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
-
-
+        grounded = Physics.Raycast(transform.position, Vector3.down,
+                       playerHeight * 0.5f + 0.2f, whatIsGround);
 
         if (grounded)
-            coyoteTimer = coyoteTime;
-        else
-            coyoteTimer -= Time.deltaTime;
-
-        if (Input.GetKeyDown(jumpKey))
-            jumpRequested = true;
-
-        MyInput();
-        SpeedControl();
-
-        // handle drag
-        if (grounded)
-            rb.linearDamping = groundDrag;
-        else
-            rb.linearDamping = 0;
-    }
-
-    private void FixedUpdate()
-    {
-        MovePlayer();
-
-        if (jumpRequested && readyToJump && coyoteTimer > 0f)
         {
-            readyToJump = false;
-            Jump();
-            Invoke(nameof(ResetJump), jumpCooldown);
+            coyoteTimer = coyoteTime;
+            hasDoubleJump = true;
 
-            jumpRequested = false;
+            // ── slam impact ──────────────────────────────────────────────────
+            if (isSlamming)
+                TriggerSlamImpact();
+        }
+        else
+        {
+            coyoteTimer -= Time.deltaTime;
         }
 
-        HandleBetterGravity();
+        if (dashHotTimer > 0f) dashHotTimer -= Time.deltaTime;
+
+        GatherInput();
+        ApplyDrag();
+
+        if (text_speed != null)
+        {
+            Vector3 flat = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            text_speed.SetText("spd: " + flat.magnitude.ToString("F1"));
+        }
     }
 
-    private void MyInput()
+    void FixedUpdate()
+    {
+        MovePlayer();
+        HandleJump();
+        BetterGravity();
+
+        if (isSlamming)
+            rb.AddForce(Vector3.down * slamDownForce, ForceMode.Acceleration);
+    }
+
+    // ── input ────────────────────────────────────────────────────────────────
+
+    void GatherInput()
     {
         horizontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
+        moveDirection = orientation.forward * verticalInput
+                        + orientation.right * horizontalInput;
 
-        // when to jump
-        if (Input.GetKey(jumpKey))
+        // jump
+        if (Input.GetKeyDown(jumpKey))
         {
             jumpRequested = true;
+            doubleJumpRequested = true;
         }
+        if (Input.GetKey(jumpKey))
+            jumpRequested = true;
 
+        // dash
+        if (Input.GetKeyDown(dashKey) && readyToDash)
+            Dash();
+
+        // crouch (ground) OR slam (air)
         if (Input.GetKeyDown(crouchKey))
         {
-            isCrouching = true;
-            transform.localScale = new Vector3(transform.localScale.x, crouchYScale, transform.localScale.z);
-            rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
-
+            if (!grounded && !isSlamming)
+                StartSlam();
+            else if (grounded)
+                StartCrouch();
         }
-        if (Input.GetKeyUp(crouchKey))
+
+        if (Input.GetKeyUp(crouchKey) && isCrouching)
+            StopCrouch();
+    }
+
+    // ── drag ─────────────────────────────────────────────────────────────────
+
+    void ApplyDrag()
+    {
+        if (isDashing) rb.linearDamping = 0f;
+        else if (grounded) rb.linearDamping = groundDrag;
+        else rb.linearDamping = 0f;
+    }
+
+    // ── movement ─────────────────────────────────────────────────────────────
+
+    void MovePlayer()
+    {
+        // no air-steering during a slam — you committed
+        if (isSlamming) return;
+
+        float force = moveSpeed * 10f * (grounded ? 1f : airMultiplier);
+        rb.AddForce(moveDirection.normalized * force, ForceMode.Force);
+
+        if (!isDashing)
         {
-            isCrouching = false;
-            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
+            Vector3 flat = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            float cap = isCrouching ? moveSpeed * 0.5f : moveSpeed;
+            if (flat.magnitude > cap)
+            {
+                Vector3 capped = flat.normalized * cap;
+                rb.linearVelocity = new Vector3(capped.x, rb.linearVelocity.y, capped.z);
+            }
         }
     }
 
-    private void MovePlayer()
+    // ── jump ─────────────────────────────────────────────────────────────────
+
+    void HandleJump()
     {
-        // calculate movement direction
-        moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
+        // cancel a slam if the player somehow wants to jump (safety net)
+        if (isSlamming) return;
 
-        float currentSpeed = isCrouching ? moveSpeed * 0.5f : moveSpeed;
-
-        // on ground
-        if (grounded)
-            rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
-
-        // in air
-        else if (!grounded)
-            rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
-    }
-
-    private void SpeedControl()
-    {
-        Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-
-        float currentSpeed = isCrouching ? moveSpeed * 0.5f : moveSpeed;
-
-        // limit velocity if needed
-        if (flatVel.magnitude > moveSpeed)
+        // ground / coyote jump
+        if (jumpRequested && readyToJump && coyoteTimer > 0f)
         {
-            Vector3 limitedVel = flatVel.normalized * moveSpeed;
-            rb.linearVelocity = new Vector3(limitedVel.x, rb.linearVelocity.y, limitedVel.z);
+            readyToJump = false;
+            jumpRequested = false;
+            doubleJumpRequested = false;
+
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+
+            Invoke(nameof(ResetJump), jumpCooldown);
+            return;
         }
 
-        text_speed.SetText("Speed: " + flatVel.magnitude);
+        // double jump
+        if (doubleJumpRequested && !grounded && hasDoubleJump)
+        {
+            doubleJumpRequested = false;
+            hasDoubleJump = false;
+
+            if (dashIsHot)
+            {
+                // vault: keep horizontal dash speed, kick upward cleanly
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+                rb.AddForce(Vector3.up * doubleJumpForce, ForceMode.Impulse);
+            }
+            else
+            {
+                Vector3 airDir = moveDirection.normalized;
+                if (airDir == Vector3.zero) airDir = orientation.forward;
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+                rb.AddForce(Vector3.up * doubleJumpForce, ForceMode.Impulse);
+                rb.AddForce(airDir * (moveSpeed * 2f), ForceMode.Impulse);
+            }
+        }
+
+        jumpRequested = false;
+        doubleJumpRequested = false;
     }
 
-    private void HandleBetterGravity()
+    void ResetJump() => readyToJump = true;
+
+    void BetterGravity()
     {
-        // fall
+        if (isSlamming) return;   // slam force handles descent, don't double-dip
+
         if (rb.linearVelocity.y < 0)
-        {
             rb.AddForce(Vector3.down * fallMultiplier, ForceMode.Acceleration);
-        }
-        // going up but player released jump early
         else if (rb.linearVelocity.y > 0 && !Input.GetKey(jumpKey))
-        {
             rb.AddForce(Vector3.down * lowJumpMultiplier, ForceMode.Acceleration);
-        }
     }
 
-    private void Jump()
+    // ── crouch ───────────────────────────────────────────────────────────────
+
+    void StartCrouch()
     {
-        // reset y velocity
+        isCrouching = true;
+        transform.localScale = new Vector3(transform.localScale.x, crouchYScale,
+                                           transform.localScale.z);
+        rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
+    }
+
+    void StopCrouch()
+    {
+        isCrouching = false;
+        transform.localScale = new Vector3(transform.localScale.x, startYScale,
+                                           transform.localScale.z);
+    }
+
+    // ── slam ─────────────────────────────────────────────────────────────────
+
+    void StartSlam()
+    {
+        isSlamming = true;
+
+        // keep horizontal momentum so the slam feels like a dive, not a drop —
+        // only zero vertical so the downforce drives descent cleanly
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
-        rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+        // squash scale slightly so it reads as a dive
+        transform.localScale = new Vector3(transform.localScale.x, crouchYScale,
+                                           transform.localScale.z);
+
+        // hook: play slam wind-up sound / particle here
+        OnSlamStart();
     }
-    private void ResetJump()
+
+    void TriggerSlamImpact()
     {
-        readyToJump = true;
+        isSlamming = false;
+
+        // bleed horizontal momentum into ground drag rather than hard-zeroing —
+        // you skid slightly in your travel direction, which feels weighted not jarring
+        rb.linearVelocity = new Vector3(
+            rb.linearVelocity.x * slamLandingMomentumRetain,
+            0f,
+            rb.linearVelocity.z * slamLandingMomentumRetain
+        );
+
+        // restore scale
+        transform.localScale = new Vector3(transform.localScale.x, startYScale,
+                                           transform.localScale.z);
+
+        // ── AOE detection ────────────────────────────────────────────────────
+        // Sphere originates at feet, not center, so the radius feels accurate
+        Vector3 impactPoint = transform.position - Vector3.up * (playerHeight * 0.5f);
+        lastSlamGizmoPos = impactPoint;
+
+        Collider[] hits = Physics.OverlapSphere(impactPoint, slamAOERadius, slamHitMask);
+
+        foreach (Collider hit in hits)
+        {
+            // ── TODO: wire up damage here when HP system is ready ────────────
+            // Example:
+            //   HealthComponent hp = hit.GetComponent<HealthComponent>();
+            //   if (hp != null) hp.TakeDamage(slamDamage, impactPoint);
+            OnSlamHit(hit, impactPoint);
+        }
+
+        // hook: play impact camera shake / shockwave VFX / sound here
+        OnSlamImpact(impactPoint, hits.Length);
+    }
+
+    // ── slam hooks (extend these without touching core logic) ────────────────
+
+    /// <summary>Called the frame the slam initiates. Spawn wind-up VFX here.</summary>
+    void OnSlamStart() { }
+
+    /// <summary>Called for each collider caught in the AOE. Apply damage here.</summary>
+    void OnSlamHit(Collider hit, Vector3 origin)
+    {
+        // stub — replace with actual damage call
+        Debug.Log($"[Slam] Hit: {hit.name} | dist: {Vector3.Distance(origin, hit.transform.position):F1}m");
+    }
+
+    /// <summary>Called once on impact. hitCount = enemies in AOE. Trigger shockwave VFX here.</summary>
+    void OnSlamImpact(Vector3 point, int hitCount)
+    {
+        Debug.Log($"[Slam] Impact at {point} | AOE hits: {hitCount}");
+    }
+
+    // ── dash ─────────────────────────────────────────────────────────────────
+
+    void Dash()
+    {
+        readyToDash = false;
+        isDashing = true;
+
+        Vector3 dir = moveDirection.sqrMagnitude > 0.01f
+                    ? moveDirection.normalized
+                    : orientation.forward;
+
+        Vector3 currentFlat = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        Vector3 blended = currentFlat * dashMomentumBlend + dir * dashSpeed;
+
+        if (blended.magnitude > dashSpeed)
+            blended = blended.normalized * dashSpeed;
+
+        rb.linearVelocity = new Vector3(blended.x, rb.linearVelocity.y, blended.z);
+
+        dashHotTimer = dashMomentumWindow;
+
+        Invoke(nameof(EndDashCoast), dashCoastDuration);
+        Invoke(nameof(ResetDash), dashCooldown);
+    }
+
+    void EndDashCoast() => isDashing = false;
+    void ResetDash() => readyToDash = true;
+
+    // ── gizmos ───────────────────────────────────────────────────────────────
+
+    void OnDrawGizmosSelected()
+    {
+        if (!drawSlamGizmo) return;
+        Gizmos.color = new Color(1f, 0.3f, 0f, 0.35f);
+        Gizmos.DrawSphere(lastSlamGizmoPos == Vector3.zero
+                          ? transform.position
+                          : lastSlamGizmoPos, slamAOERadius);
     }
 }
