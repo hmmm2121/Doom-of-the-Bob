@@ -775,7 +775,7 @@ MonoBehaviour:
   dropDownAmount: 0.4
   dropSideAmount: 0.1
   dropSpinAngle: 50
-  gapDuration: 0.15
+  gapDuration: 1
   tossDuration: 0.45
   tossStartBelow: 0.5
   tossStartTilt: 40
@@ -1370,8 +1370,8 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
-  m_Volume: 1
-  m_Pitch: 1
+  m_Volume: 0.175
+  m_Pitch: 1.71
   Loop: 0
   Mute: 0
   Spatialize: 0
