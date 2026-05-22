@@ -1,0 +1,151 @@
+fileFormatVersion: 2
+guid: 783ccc4992f253144905d1e70b5402d4
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 715df9372183c47e389bb6e19fbc3b52, type: 3}
+  editorImportSettings:
+    generateSecondaryUVSet: 0
+  importSettings:
+    nodeNameMethod: 1
+    animationMethod: 2
+    generateMipMaps: 1
+    texturesReadable: 0
+    defaultMinFilterMode: 9729
+    defaultMagFilterMode: 9729
+    anisotropicFilterLevel: 1
+  instantiationSettings:
+    mask: -1
+    layer: 0
+    skinUpdateWhenOffscreen: 1
+    lightIntensityFactor: 1
+    sceneObjectCreation: 2
+  assetDependencies:
+  - type: 0
+    originalUri: Assets\geonosis_arena\scene.bin
+    assetPath: Assets\geonosis_arena\scene.bin
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_0_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_0_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_1_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_1_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_2_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_2_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_3_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_3_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_4_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_4_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_0_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_0_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_1_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_1_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_5_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_5_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_6_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_6_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_7_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_7_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.004_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.004_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_4_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_4_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_5_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_5_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_7_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_7_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_10_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_10_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_11_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_11_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_8_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_8_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_13_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_13_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_14_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_14_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_15_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_15_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_10_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_10_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_16_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_16_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_17_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_17_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_18_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_18_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_11_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_11_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\geo_chariot_mat_0_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\geo_chariot_mat_0_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\WorldGridMaterial.003_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\WorldGridMaterial.003_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\lambert1_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\lambert1_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_19_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_19_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_20_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_20_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.001_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.001_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_21_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_21_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_12_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_12_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_14_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_14_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_22_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_22_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_23_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_23_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.076_15_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.076_15_baseColor.png
+  - type: 1
+    originalUri: Assets\geonosis_arena\textures\Material.009_25_baseColor.png
+    assetPath: Assets\geonosis_arena\textures\Material.009_25_baseColor.png
+  reportItems: []
