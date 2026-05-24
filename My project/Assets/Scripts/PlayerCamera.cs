@@ -2,38 +2,40 @@ using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
 {
-
     public float sensX;
     public float sensY;
-
     public Transform orientation;
+
+    [Header("Camera Setup")]
+    [Tooltip("Set initial Y rotation (e.g., 270 for facing a specific direction).")]
+    public float initialYRotation = 270f;
 
     float xRotation;
     float yRotation;
 
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        // Set initial rotation
+        yRotation = initialYRotation;
+        transform.rotation = Quaternion.Euler(0, yRotation, 0);
+        orientation.rotation = Quaternion.Euler(0, yRotation, 0);
     }
 
-    // Update is called once per frame
     void Update()
-    {   //this is the mouse input
-        Debug.Log("Camera running");
+    {
+        // Mouse input
         float mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * sensX;
         float mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * sensY;
 
         yRotation += mouseX;
-
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        // rotate cam
+        // Rotate cam
         transform.rotation = Quaternion.Euler(xRotation, yRotation, 0);
         orientation.rotation = Quaternion.Euler(0, yRotation, 0);
-
     }
 }

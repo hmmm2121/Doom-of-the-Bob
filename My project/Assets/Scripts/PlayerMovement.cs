@@ -10,6 +10,10 @@ using TMPro;
 ///   • Damage/HP logic is stubbed via OnSlamImpact() — wire it up when ready.
 ///   • Visual/audio hooks: SlamStart() and SlamImpact() are partial methods
 ///     you can extend without touching core logic.
+///
+/// GROUND DETECTION
+///   uses OnCollisionEnter/Exit instead of raycast for precise ground contact.
+///   jump and double jump reset ONLY when your collider touches the ground.
 /// </summary>
 public class PlayerMovement : MonoBehaviour
 {
@@ -27,9 +31,9 @@ public class PlayerMovement : MonoBehaviour
     public float fallMultiplier = 3f;
     public float lowJumpMultiplier = 2f;
 
-    [Header("Double Jump")]
+    [Header("double Jump")]
     public float doubleJumpForce = 10f;
-    [Tooltip("Seconds after a dash where double jump preserves full horizontal speed.")]
+    [Tooltip("seconds after a dash where double jump preserves full horizontal speed.")]
     public float dashMomentumWindow = 0.6f;
 
     [Header("Crouch")]
@@ -37,15 +41,15 @@ public class PlayerMovement : MonoBehaviour
     public KeyCode crouchKey = KeyCode.LeftControl;
 
     [Header("Slam")]
-    [Tooltip("Downward force applied every FixedUpdate while slamming.")]
+    [Tooltip("downward force applied every FixedUpdate while slamming.")]
     public float slamDownForce = 60f;
-    [Tooltip("Radius of the AOE sphere on impact.")]
+    [Tooltip("radius of the AOE sphere on impact.")] // not used yet
     public float slamAOERadius = 4f;
-    [Tooltip("Layers the AOE hits.")]
+    [Tooltip("layers the AOE hits.")]
     public LayerMask slamHitMask;
-    [Tooltip("Visual/debug: draw the AOE gizmo in the editor.")]
+    [Tooltip("visual/debug: draw the AOE gizmo in the editor.")]
     public bool drawSlamGizmo = true;
-    [Tooltip("How much horizontal momentum carries through on landing (0 = dead stop, 1 = full skid).")]
+    [Tooltip("how much horizontal momentum carries through on landing (0 = dead stop).")]
     [Range(0f, 1f)]
     public float slamLandingMomentumRetain = 0.4f;
 
@@ -108,19 +112,8 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        grounded = Physics.Raycast(transform.position, Vector3.down,
-                       playerHeight * 0.5f + 0.2f, whatIsGround);
-
-        if (grounded)
-        {
-            coyoteTimer = coyoteTime;
-            hasDoubleJump = true;
-
-            // ── slam impact ──────────────────────────────────────────────────
-            if (isSlamming)
-                TriggerSlamImpact();
-        }
-        else
+        // coyote time countdown when not grounded
+        if (!grounded)
         {
             coyoteTimer -= Time.deltaTime;
         }
@@ -145,6 +138,41 @@ public class PlayerMovement : MonoBehaviour
 
         if (isSlamming)
             rb.AddForce(Vector3.down * slamDownForce, ForceMode.Acceleration);
+    }
+
+    // ── collision detection ──────────────────────────────────────────────────
+
+    void OnCollisionEnter(Collision collision)
+    {
+        // check if we collided with ground layer
+        if (((1 << collision.gameObject.layer) & whatIsGround) != 0)
+        {
+            grounded = true;
+            coyoteTimer = coyoteTime;
+            hasDoubleJump = true;
+
+            // ── slam impact ──────────────────────────────────────────────────
+            if (isSlamming)
+                TriggerSlamImpact();
+        }
+    }
+
+    void OnCollisionStay(Collision collision)
+    {
+        // maintain grounded state while touching ground
+        if (((1 << collision.gameObject.layer) & whatIsGround) != 0)
+        {
+            grounded = true;
+        }
+    }
+
+    void OnCollisionExit(Collision collision)
+    {
+        // check if we left the ground layer
+        if (((1 << collision.gameObject.layer) & whatIsGround) != 0)
+        {
+            grounded = false;
+        }
     }
 
     // ── input ────────────────────────────────────────────────────────────────
@@ -242,7 +270,6 @@ public class PlayerMovement : MonoBehaviour
 
             if (dashIsHot)
             {
-                // vault: keep horizontal dash speed, kick upward cleanly
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
                 rb.AddForce(Vector3.up * doubleJumpForce, ForceMode.Impulse);
             }
@@ -264,7 +291,7 @@ public class PlayerMovement : MonoBehaviour
 
     void BetterGravity()
     {
-        if (isSlamming) return;   // slam force handles descent, don't double-dip
+        if (isSlamming) return;   // slam force handles descent
 
         if (rb.linearVelocity.y < 0)
             rb.AddForce(Vector3.down * fallMultiplier, ForceMode.Acceleration);
@@ -295,11 +322,12 @@ public class PlayerMovement : MonoBehaviour
     {
         isSlamming = true;
 
-        // keep horizontal momentum so the slam feels like a dive, not a drop —
-        // only zero vertical so the downforce drives descent cleanly
+        // keep horizontal momentum so the slam feels like a dive, not a drop 
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
-        // squash scale slightly so it reads as a dive
+
+        float scaleChange = startYScale - crouchYScale;
+        transform.position += Vector3.up * (scaleChange * 0.5f);
         transform.localScale = new Vector3(transform.localScale.x, crouchYScale,
                                            transform.localScale.z);
 
@@ -311,20 +339,19 @@ public class PlayerMovement : MonoBehaviour
     {
         isSlamming = false;
 
-        // bleed horizontal momentum into ground drag rather than hard-zeroing —
-        // you skid slightly in your travel direction, which feels weighted not jarring
+        // bleed horizontal momentum into ground drag rather than hard-zeroing 
+
         rb.linearVelocity = new Vector3(
             rb.linearVelocity.x * slamLandingMomentumRetain,
             0f,
             rb.linearVelocity.z * slamLandingMomentumRetain
         );
 
-        // restore scale
+        float scaleChange = startYScale - crouchYScale;
+        transform.position += Vector3.up * (scaleChange * 0.5f);
         transform.localScale = new Vector3(transform.localScale.x, startYScale,
                                            transform.localScale.z);
 
-        // ── AOE detection ────────────────────────────────────────────────────
-        // Sphere originates at feet, not center, so the radius feels accurate
         Vector3 impactPoint = transform.position - Vector3.up * (playerHeight * 0.5f);
         lastSlamGizmoPos = impactPoint;
 
