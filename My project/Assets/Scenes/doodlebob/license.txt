@@ -1,0 +1,11 @@
+Model Information:
+* title:	DoodleBob
+* source:	https://sketchfab.com/3d-models/doodlebob-313929ef08c14373972ab1ce8e7b4b50
+* author:	alexvladimircm (https://sketchfab.com/alexvladimircm)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "DoodleBob" (https://sketchfab.com/3d-models/doodlebob-313929ef08c14373972ab1ce8e7b4b50) by alexvladimircm (https://sketchfab.com/alexvladimircm) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
