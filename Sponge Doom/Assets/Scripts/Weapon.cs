@@ -3,15 +3,12 @@ using System.Collections;
 
 public class Weapon : MonoBehaviour
 {
-    public GameObject bulletPrefab;
     public GameObject droppedGunPrefab;
     public Transform bulletSpawn;
 
     [Header("Shotgun Settings")]
     public int pelletCount = 8;
     public float spreadAngle = 8f;
-    public float pelletSpeed = 30f;
-    public float pelletLifetime = 0.5f;
 
     [Header("Ammo Settings")]
     public int maxMagAmmo = 8;
