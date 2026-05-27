@@ -10,6 +10,7 @@ public class Enemy : MonoBehaviour
 
         if(health < 0f)
         {
+            ObjectiveManager.Instance.EnemyDied();
             Destroy(gameObject);
         }
     }

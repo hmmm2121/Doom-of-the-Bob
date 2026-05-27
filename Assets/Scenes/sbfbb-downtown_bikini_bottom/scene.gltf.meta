@@ -1,0 +1,151 @@
+fileFormatVersion: 2
+guid: 4138f61b6fb6a5c42974b12442597a6e
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 715df9372183c47e389bb6e19fbc3b52, type: 3}
+  editorImportSettings:
+    generateSecondaryUVSet: 0
+  importSettings:
+    nodeNameMethod: 1
+    animationMethod: 2
+    generateMipMaps: 1
+    texturesReadable: 0
+    defaultMinFilterMode: 9729
+    defaultMagFilterMode: 9729
+    anisotropicFilterLevel: 1
+  instantiationSettings:
+    mask: -1
+    layer: 0
+    skinUpdateWhenOffscreen: 1
+    lightIntensityFactor: 1
+    sceneObjectCreation: 2
+  assetDependencies:
+  - type: 0
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\scene.bin
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\scene.bin
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0002mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0002mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0005mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0005mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0007mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0007mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0011mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0011mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0026mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0026mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0049mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0049mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0050mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0050mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0058mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0058mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0074mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0074mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0085mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0085mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0101mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0101mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0104mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0104mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0110mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0110mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0120mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0120mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0122mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0122mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0124mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0124mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0129mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0129mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0139mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0139mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0160mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0160mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0172mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0172mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0185mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0185mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0188mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0188mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0207mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0207mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0229mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0229mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0248mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0248mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0251mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0251mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0260mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0260mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0261mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0261mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0267mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0267mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0276mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0276mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0278mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0278mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0289mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0289mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0294mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0294mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0313mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0313mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0318mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0318mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0327mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0327mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0362mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0362mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0365mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0365mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0369mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0369mat_baseColor.png
+  - type: 1
+    originalUri: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0373mat_baseColor.png
+    assetPath: Assets\Scenes\sbfbb-downtown_bikini_bottom\textures\mesh0373mat_baseColor.png
+  reportItems: []
