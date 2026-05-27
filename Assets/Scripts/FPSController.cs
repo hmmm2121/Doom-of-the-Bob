@@ -12,7 +12,7 @@ public class FPSController : MonoBehaviour
 
     [Header("Look")]
     public Transform cameraTransform;
-    public float mouseSensitivity = 0.15f;
+    public float mouseSensitivity = 0.05f;
     public float maxPitch = 85f;
 
     CharacterController cc;
