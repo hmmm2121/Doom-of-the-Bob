@@ -529,7 +529,7 @@ public class PlayerMovement : MonoBehaviour
             ? lastSlamGizmoPos
             : transform.position - Vector3.up * (playerHeight * 0.5f);
 
-        // shockwave AOE
+        // aoe here vvv
         Gizmos.color = new Color(1f, 0.3f, 0f, 0.35f);
         Gizmos.DrawSphere(origin, slamAOERadius);
 

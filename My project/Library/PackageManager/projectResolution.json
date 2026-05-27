@@ -9,6 +9,16 @@
     "C:\\Program Files\\Unity\\Hub\\Editor\\6000.3.11f1-x86_64\\Editor\\Data\\Resources\\PackageManager\\BuiltInPackages\\BuiltInPackagesCombined.sha1"
   ],
   "outputs": {
+    "com.unity.ai.navigation@2.0.12": {
+      "name": "com.unity.ai.navigation",
+      "displayName": "AI Navigation",
+      "resolvedPath": "C:\\Users\\hasan\\Documents\\Code\\Doom-of-the-Bob\\My project\\Library\\PackageCache\\com.unity.ai.navigation@734c2c4c5591",
+      "fingerprint": "734c2c4c5591c25b6d4c6c83bd2f4957c118da40",
+      "editorCompatibility": "6000.0.0a1",
+      "version": "2.0.12",
+      "source": "registry",
+      "testable": false
+    },
     "com.unity.cloud.gltfast@6.19.0": {
       "name": "com.unity.cloud.gltfast",
       "displayName": "Unity glTFast",
