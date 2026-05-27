@@ -20,10 +20,10 @@ public class WallRide : MonoBehaviour
     public float playerHeight = 2f;
 
     [Header("Wall run")]
-    public float wallRunSpeed = 15f;   // target horizontal speed along wall
-    public float wallStickForce = 18f;   // perpendicular force pressing you into the wall
-    public float wallUpForce = 4f;    // counter-gravity while riding
-    public float maxWallRunTime = 2f;    // hard time limit per continuous ride
+    public float wallRunSpeed = 15f;
+    public float wallStickForce = 18f;
+    public float wallUpForce = 4f;
+    public float maxWallRunTime = 2f;
 
     [Header("Wall jump")]
     public float wallJumpSideForce = 12f;
@@ -37,24 +37,23 @@ public class WallRide : MonoBehaviour
 
     // ── read-only for other scripts ──────────────────────────────────────────
 
-    /// <summary>Camera tilt target: −1 (left wall) … 0 … +1 (right wall).</summary>
     public float WallRunTilt { get; private set; }
     public bool IsWallRunning => isWallRunning;
 
     // ── private state ────────────────────────────────────────────────────────
 
     Rigidbody rb;
+    PlayerMovement playerMovement;
 
     bool wallLeft, wallRight;
     RaycastHit leftHit, rightHit;
     Vector3 wallNormal;
-    bool lastWallLeft, lastWallRight;   // track wall switches for timer reset
+    bool lastWallLeft, lastWallRight;
 
     bool isWallRunning;
     float wallTimer;
     bool grounded;
 
-    // cached per-frame along-wall direction
     Vector3 wallForward;
 
     // ── lifecycle ────────────────────────────────────────────────────────────
@@ -62,6 +61,7 @@ public class WallRide : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+        playerMovement = GetComponent<PlayerMovement>();
     }
 
     void Update()
@@ -94,7 +94,6 @@ public class WallRide : MonoBehaviour
 
         if (wallRight) wallNormal = rightHit.normal;
         else if (wallLeft) wallNormal = leftHit.normal;
-        // keep last normal if no wall is detected so jump still works
     }
 
     // ── state machine ────────────────────────────────────────────────────────
@@ -104,6 +103,13 @@ public class WallRide : MonoBehaviour
         bool holdingSpace = Input.GetKey(KeyCode.Space);
         bool releasedSpace = Input.GetKeyUp(KeyCode.Space);
         bool nearWall = wallLeft || wallRight;
+
+        // Never wall-ride while slamming
+        if (playerMovement != null && playerMovement.IsSlamming)
+        {
+            if (isWallRunning) StopWallRun(false);
+            return;
+        }
 
         // ── attach ───────────────────────────────────────────────────────────
         if (!isWallRunning && !grounded && nearWall && holdingSpace && HasForwardInput())
@@ -116,7 +122,6 @@ public class WallRide : MonoBehaviour
 
         // ── while riding ─────────────────────────────────────────────────────
 
-        // switched to the other wall? reset the timer so you don't get cut short
         if ((wallLeft != lastWallLeft) || (wallRight != lastWallRight))
         {
             wallTimer = maxWallRunTime;
@@ -126,14 +131,16 @@ public class WallRide : MonoBehaviour
 
         wallTimer -= Time.deltaTime;
 
-        bool shouldDetach = grounded           // landed
-                         || !nearWall          // ran off the wall's edge
-                         || !holdingSpace      // player released Space
-                         || wallTimer <= 0f;   // time limit hit
+        bool shouldDetach = grounded
+                         || !nearWall
+                         || !holdingSpace
+                         || wallTimer <= 0f;
 
         if (shouldDetach)
         {
-            bool doJump = releasedSpace && !grounded;  // Lúcio: release = jump
+            // Lúcio rule: releasing Space while still on the wall = jump off.
+            // Time-out or wall-end = just fall (no automatic jump).
+            bool doJump = releasedSpace && nearWall && !grounded;
             StopWallRun(doJump);
         }
     }
@@ -145,9 +152,9 @@ public class WallRide : MonoBehaviour
         lastWallLeft = wallLeft;
         lastWallRight = wallRight;
 
-        rb.useGravity = false;   // kill gravity immediately – no blending needed
+        rb.useGravity = false;
 
-        // Flatten vertical velocity on attach so there's no upward lurch
+        // Flatten vertical velocity so there's no upward lurch on attach
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
     }
 
@@ -156,8 +163,12 @@ public class WallRide : MonoBehaviour
         if (!isWallRunning) return;
 
         isWallRunning = false;
-        rb.useGravity = true;   // gravity back on instantly
+        rb.useGravity = true;
         WallRunTilt = 0f;
+
+        // Restore double jump — wall ride counts as a reset surface
+        if (playerMovement != null)
+            playerMovement.RestoreDoubleJump();
 
         if (jumpOff)
             DoWallJump();
@@ -167,37 +178,34 @@ public class WallRide : MonoBehaviour
 
     void ApplyWallRunForces()
     {
-        // along-wall direction, oriented toward where the player is looking
+        // Along-wall direction, oriented toward where the player is looking
         wallForward = Vector3.Cross(wallNormal, Vector3.up);
         if (Vector3.Dot(wallForward, orientation.forward) < 0f)
             wallForward = -wallForward;
 
-        // ── speed control ─────────────────────────────────────────────────
-        // Work only on horizontal speed to avoid fighting the up-force below.
+        // ── speed control ─────────────────────────────────────────────────────
         Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         float currSpeed = flatVel.magnitude;
 
-        // Smoothly accelerate toward target speed
-        float targetSpeed = wallRunSpeed;
-        float newSpeed = Mathf.MoveTowards(currSpeed, targetSpeed,
-                                wallAcceleration * Time.fixedDeltaTime);
+        float newSpeed = Mathf.MoveTowards(currSpeed, wallRunSpeed,
+                                           wallAcceleration * Time.fixedDeltaTime);
 
-        // Only redirect horizontal velocity along the wall; don't kill vertical
         if (currSpeed > 0.1f)
         {
             Vector3 desiredFlat = wallForward * newSpeed;
             rb.linearVelocity = new Vector3(desiredFlat.x, rb.linearVelocity.y, desiredFlat.z);
         }
 
-        // ── perpendicular stick ───────────────────────────────────────────
+        // ── perpendicular stick ───────────────────────────────────────────────
         rb.AddForce(-wallNormal * wallStickForce, ForceMode.Force);
 
-        // ── counter gravity ───────────────────────────────────────────────
-        // Apply just enough to cancel gravity, plus a tiny upward bias
-        float gravCancel = -Physics.gravity.y;          // ~9.81 on standard settings
+        // ── gravity cancellation + upward bias ────────────────────────────────
+        // BetterGravity in PlayerMovement is suppressed while IsWallRunning,
+        // so we only need to cancel Physics.gravity here.
+        float gravCancel = -Physics.gravity.y;    // ≈ 9.81 with default settings
         rb.AddForce(Vector3.up * (gravCancel + wallUpForce), ForceMode.Acceleration);
 
-        // ── camera tilt signal ────────────────────────────────────────────
+        // ── camera tilt signal ────────────────────────────────────────────────
         WallRunTilt = wallRight ? 1f : -1f;
     }
 
@@ -205,10 +213,8 @@ public class WallRide : MonoBehaviour
 
     void DoWallJump()
     {
-        // Zero out vertical velocity for a clean, predictable arc
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
-        // Push away from wall + up
         Vector3 jumpDir = wallNormal.normalized * wallJumpSideForce
                         + Vector3.up * wallJumpUpForce;
         rb.AddForce(jumpDir, ForceMode.Impulse);

@@ -5,21 +5,19 @@ public class ArenaTrigger : MonoBehaviour
     [Header("References")]
     public DoodleBobAI doodleBob;
 
+    private bool fightStarted = false;
+
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        Debug.Log("Something entered trigger: " + other.gameObject.name);
+
+        if (fightStarted) return;
+
+        if (other.CompareTag("Player") || other.gameObject.GetComponent<PlayerMovement>() != null)
         {
+            fightStarted = true;
             doodleBob.StartFight();
             Debug.Log("Player entered the arena!");
-        }
-    }
-
-    // Optional: stop fight if player leaves
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            doodleBob.StopFight();
         }
     }
 

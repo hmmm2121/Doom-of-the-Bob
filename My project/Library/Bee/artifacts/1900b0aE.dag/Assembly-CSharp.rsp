@@ -444,6 +444,7 @@
 -analyzer:"C:/Program Files/Unity/Hub/Editor/6000.3.11f1-x86_64/Editor/Data/Tools/BuildPipeline/Unity.SourceGenerators/Unity.UIToolkit.SourceGenerator.dll"
 "Assets/Scripts/AddColliders.cs"
 "Assets/Scripts/ArenaTrigger.cs"
+"Assets/Scripts/CherringScript.cs"
 "Assets/Scripts/DoodleBobAi.cs"
 "Assets/Scripts/MoveCamera.cs"
 "Assets/Scripts/PencilProjectile.cs"

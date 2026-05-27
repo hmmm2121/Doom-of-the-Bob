@@ -2,18 +2,18 @@
 using TMPro;
 
 /// <summary>
-/// PlayerMovement — with ground slam replacing slide.
+/// PlayerMovement — Ultrakill-style ground slam.
 ///
 /// SLAM
-///   • Hold crouch key while airborne → slams straight down.
-///   • On impact: dead stop (all velocity zeroed), AOE sphere cast below.
-///   • Damage/HP logic is stubbed via OnSlamImpact() — wire it up when ready.
-///   • Visual/audio hooks: SlamStart() and SlamImpact() are partial methods
-///     you can extend without touching core logic.
+///   • Tap crouch key while airborne → instant max downward velocity, NO shockwave on landing.
+///   • Hold crouch key while airborne → instant max downward velocity, shockwave on landing.
+///   • Shockwave: launches enemies upward, power scales with air time spent slamming.
+///   • Direct hit: 2 damage to any enemy directly below on impact (stub via OnSlamDirectHit).
+///   • Slam Bounce: jump immediately after landing → extra height scaled by slam air time.
+///   • No air steering while slamming.
 ///
 /// GROUND DETECTION
-///   uses OnCollisionEnter/Exit instead of raycast for precise ground contact.
-///   jump and double jump reset ONLY when your collider touches the ground.
+///   Uses OnCollisionEnter/Exit for precise ground contact.
 /// </summary>
 public class PlayerMovement : MonoBehaviour
 {
@@ -31,9 +31,9 @@ public class PlayerMovement : MonoBehaviour
     public float fallMultiplier = 3f;
     public float lowJumpMultiplier = 2f;
 
-    [Header("double Jump")]
+    [Header("Double Jump")]
     public float doubleJumpForce = 10f;
-    [Tooltip("seconds after a dash where double jump preserves full horizontal speed.")]
+    [Tooltip("Seconds after a dash where double jump preserves full horizontal speed.")]
     public float dashMomentumWindow = 0.6f;
 
     [Header("Crouch")]
@@ -41,17 +41,33 @@ public class PlayerMovement : MonoBehaviour
     public KeyCode crouchKey = KeyCode.LeftControl;
 
     [Header("Slam")]
-    [Tooltip("downward force applied every FixedUpdate while slamming.")]
-    public float slamDownForce = 60f;
-    [Tooltip("radius of the AOE sphere on impact.")] // not used yet
+    [Tooltip("Downward velocity set instantly when slam starts.")]
+    public float slamInstantDownVelocity = 40f;
+    [Tooltip("Radius of the shockwave AOE sphere on impact.")]
     public float slamAOERadius = 4f;
-    [Tooltip("layers the AOE hits.")]
+    [Tooltip("Layers the shockwave and direct hit can affect.")]
     public LayerMask slamHitMask;
-    [Tooltip("visual/debug: draw the AOE gizmo in the editor.")]
-    public bool drawSlamGizmo = true;
-    [Tooltip("how much horizontal momentum carries through on landing (0 = dead stop).")]
+    [Tooltip("Direct-hit sphere radius — enemies directly below you when you land.")]
+    public float slamDirectHitRadius = 1.2f;
+    [Tooltip("Base upward force applied to enemies hit by the shockwave.")]
+    public float shockwaveLaunchBase = 12f;
+    [Tooltip("Extra upward force added per second spent slamming (scales the launch).")]
+    public float shockwaveLaunchPerSecond = 8f;
+    [Tooltip("Max total upward launch force on enemies.")]
+    public float shockwaveLaunchMax = 40f;
+    [Tooltip("Base extra jump height on a slam bounce.")]
+    public float slamBounceBaseForce = 14f;
+    [Tooltip("Extra bounce force added per second spent slamming.")]
+    public float slamBounceForcePerSecond = 6f;
+    [Tooltip("Max slam bounce force.")]
+    public float slamBounceMaxForce = 32f;
+    [Tooltip("Window after landing during which a jump counts as a slam bounce (seconds).")]
+    public float slamBounceWindow = 0.18f;
+    [Tooltip("How much horizontal momentum is retained on landing (0 = dead stop).")]
     [Range(0f, 1f)]
-    public float slamLandingMomentumRetain = 0.4f;
+    public float slamLandingMomentumRetain = 0.3f;
+    [Tooltip("Draw the AOE gizmo in the editor.")]
+    public bool drawSlamGizmo = true;
 
     [Header("Dash")]
     public KeyCode dashKey = KeyCode.Q;
@@ -87,9 +103,12 @@ public class PlayerMovement : MonoBehaviour
     float startYScale;
 
     // slam
-    bool isSlamming;          // descending fast toward ground
-    bool slamLanded;          // one-frame flag: impact happened this frame
-    Vector3 lastSlamGizmoPos;  // for debug gizmo
+    bool isSlamming;
+    bool slamHeld;
+    float slamAirTime;
+    float slamBounceTimer;
+    bool inSlamBounce;
+    Vector3 lastSlamGizmoPos;
 
     // dash
     bool readyToDash = true;
@@ -101,6 +120,9 @@ public class PlayerMovement : MonoBehaviour
     float verticalInput;
     Vector3 moveDirection;
 
+    // reference to wall ride so we can guard BetterGravity and refresh double jump
+    WallRide wallRide;
+
     // ── lifecycle ────────────────────────────────────────────────────────────
 
     void Start()
@@ -108,17 +130,22 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
         startYScale = transform.localScale.y;
+        wallRide = GetComponent<WallRide>();
     }
 
     void Update()
     {
-        // coyote time countdown when not grounded
         if (!grounded)
-        {
             coyoteTimer -= Time.deltaTime;
-        }
 
-        if (dashHotTimer > 0f) dashHotTimer -= Time.deltaTime;
+        if (dashHotTimer > 0f)
+            dashHotTimer -= Time.deltaTime;
+
+        if (isSlamming)
+            slamAirTime += Time.deltaTime;
+
+        if (slamBounceTimer > 0f)
+            slamBounceTimer -= Time.deltaTime;
 
         GatherInput();
         ApplyDrag();
@@ -135,23 +162,26 @@ public class PlayerMovement : MonoBehaviour
         MovePlayer();
         HandleJump();
         BetterGravity();
-
-        if (isSlamming)
-            rb.AddForce(Vector3.down * slamDownForce, ForceMode.Acceleration);
     }
+
+    // ── public accessors ─────────────────────────────────────────────────────
+
+    /// <summary>Called by WallRide on detach to restore the double jump.</summary>
+    public void RestoreDoubleJump() => hasDoubleJump = true;
+
+    /// <summary>True while a slam is in progress (used by WallRide to stay detached).</summary>
+    public bool IsSlamming => isSlamming;
 
     // ── collision detection ──────────────────────────────────────────────────
 
     void OnCollisionEnter(Collision collision)
     {
-        // check if we collided with ground layer
         if (((1 << collision.gameObject.layer) & whatIsGround) != 0)
         {
             grounded = true;
             coyoteTimer = coyoteTime;
             hasDoubleJump = true;
 
-            // ── slam impact ──────────────────────────────────────────────────
             if (isSlamming)
                 TriggerSlamImpact();
         }
@@ -159,20 +189,14 @@ public class PlayerMovement : MonoBehaviour
 
     void OnCollisionStay(Collision collision)
     {
-        // maintain grounded state while touching ground
         if (((1 << collision.gameObject.layer) & whatIsGround) != 0)
-        {
             grounded = true;
-        }
     }
 
     void OnCollisionExit(Collision collision)
     {
-        // check if we left the ground layer
         if (((1 << collision.gameObject.layer) & whatIsGround) != 0)
-        {
             grounded = false;
-        }
     }
 
     // ── input ────────────────────────────────────────────────────────────────
@@ -184,27 +208,33 @@ public class PlayerMovement : MonoBehaviour
         moveDirection = orientation.forward * verticalInput
                         + orientation.right * horizontalInput;
 
-        // jump
+        // jump — set flags; only CLEAR them in HandleJump when consumed
         if (Input.GetKeyDown(jumpKey))
         {
             jumpRequested = true;
             doubleJumpRequested = true;
         }
-        if (Input.GetKey(jumpKey))
-            jumpRequested = true;
 
         // dash
         if (Input.GetKeyDown(dashKey) && readyToDash)
             Dash();
 
-        // crouch (ground) OR slam (air)
+        // slam: tap vs hold
         if (Input.GetKeyDown(crouchKey))
         {
             if (!grounded && !isSlamming)
+            {
+                slamHeld = false;
                 StartSlam();
+            }
             else if (grounded)
+            {
                 StartCrouch();
+            }
         }
+
+        if (isSlamming && Input.GetKey(crouchKey))
+            slamHeld = true;
 
         if (Input.GetKeyUp(crouchKey) && isCrouching)
             StopCrouch();
@@ -223,7 +253,6 @@ public class PlayerMovement : MonoBehaviour
 
     void MovePlayer()
     {
-        // no air-steering during a slam — you committed
         if (isSlamming) return;
 
         float force = moveSpeed * 10f * (grounded ? 1f : airMultiplier);
@@ -245,10 +274,32 @@ public class PlayerMovement : MonoBehaviour
 
     void HandleJump()
     {
-        // cancel a slam if the player somehow wants to jump (safety net)
         if (isSlamming) return;
 
-        // ground / coyote jump
+        // ── slam bounce (highest priority) ───────────────────────────────────
+        // Check grounded too: the bounce timer opens the same frame we land,
+        // so grounded will already be true when HandleJump next runs.
+        if (jumpRequested && slamBounceTimer > 0f && !inSlamBounce)
+        {
+            inSlamBounce = true;
+            slamBounceTimer = 0f;
+
+            float bounceForce = Mathf.Min(
+                slamBounceBaseForce + slamBounceForcePerSecond * slamAirTime,
+                slamBounceMaxForce
+            );
+
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            rb.AddForce(Vector3.up * bounceForce, ForceMode.Impulse);
+
+            jumpRequested = false;
+            doubleJumpRequested = false;
+            readyToJump = false;
+            Invoke(nameof(ResetJump), jumpCooldown);
+            return;
+        }
+
+        // ── ground / coyote jump ──────────────────────────────────────────────
         if (jumpRequested && readyToJump && coyoteTimer > 0f)
         {
             readyToJump = false;
@@ -262,7 +313,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        // double jump
+        // ── double jump ───────────────────────────────────────────────────────
         if (doubleJumpRequested && !grounded && hasDoubleJump)
         {
             doubleJumpRequested = false;
@@ -281,8 +332,15 @@ public class PlayerMovement : MonoBehaviour
                 rb.AddForce(Vector3.up * doubleJumpForce, ForceMode.Impulse);
                 rb.AddForce(airDir * (moveSpeed * 2f), ForceMode.Impulse);
             }
+
+            jumpRequested = false;
+            doubleJumpRequested = false;
+            return;
         }
 
+        // Flags not consumed this frame — clear them so they don't persist
+        // Only clear jumpRequested if no path above could still use it.
+        // Both flags survive until the next GatherInput writes new input.
         jumpRequested = false;
         doubleJumpRequested = false;
     }
@@ -291,7 +349,9 @@ public class PlayerMovement : MonoBehaviour
 
     void BetterGravity()
     {
-        if (isSlamming) return;   // slam force handles descent
+        // Don't fight WallRide's gravity cancellation or the slam's forced descent
+        if (isSlamming) return;
+        if (wallRide != null && wallRide.IsWallRunning) return;
 
         if (rb.linearVelocity.y < 0)
             rb.AddForce(Vector3.down * fallMultiplier, ForceMode.Acceleration);
@@ -321,17 +381,22 @@ public class PlayerMovement : MonoBehaviour
     void StartSlam()
     {
         isSlamming = true;
+        slamAirTime = 0f;
+        inSlamBounce = false;
 
-        // keep horizontal momentum so the slam feels like a dive, not a drop 
-        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        rb.linearVelocity = new Vector3(
+            rb.linearVelocity.x,
+            -slamInstantDownVelocity,
+            rb.linearVelocity.z
+        );
 
-
+        // Shrink the player collider by scaling down; adjust position so the
+        // bottom of the capsule stays in place (doesn't clip into the floor).
         float scaleChange = startYScale - crouchYScale;
-        transform.position += Vector3.up * (scaleChange * 0.5f);
         transform.localScale = new Vector3(transform.localScale.x, crouchYScale,
                                            transform.localScale.z);
+        transform.position += Vector3.up * (scaleChange * 0.5f);
 
-        // hook: play slam wind-up sound / particle here
         OnSlamStart();
     }
 
@@ -339,53 +404,90 @@ public class PlayerMovement : MonoBehaviour
     {
         isSlamming = false;
 
-        // bleed horizontal momentum into ground drag rather than hard-zeroing 
+        // ── impact point: bottom of player, BEFORE we restore scale ──────────
+        // At this moment the player is still in crouched scale, so the foot
+        // position is transform.position − up*(crouchYScale * 0.5f * originalObjectHeight).
+        // The simplest reliable approach: raycast straight down a short distance.
+        Vector3 impactPoint;
+        if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit groundHit,
+                            playerHeight, whatIsGround))
+        {
+            impactPoint = groundHit.point;
+        }
+        else
+        {
+            // Fallback: use the base of the (crouched) capsule
+            impactPoint = transform.position - Vector3.up * (playerHeight * crouchYScale * 0.5f);
+        }
 
+        lastSlamGizmoPos = impactPoint;
+
+        // ── bleed horizontal speed, kill vertical ─────────────────────────────
         rb.linearVelocity = new Vector3(
             rb.linearVelocity.x * slamLandingMomentumRetain,
             0f,
             rb.linearVelocity.z * slamLandingMomentumRetain
         );
 
+        // ── restore scale (AFTER we've captured impactPoint) ─────────────────
         float scaleChange = startYScale - crouchYScale;
-        transform.position += Vector3.up * (scaleChange * 0.5f);
         transform.localScale = new Vector3(transform.localScale.x, startYScale,
                                            transform.localScale.z);
+        transform.position += Vector3.up * (scaleChange * 0.5f);
 
-        Vector3 impactPoint = transform.position - Vector3.up * (playerHeight * 0.5f);
-        lastSlamGizmoPos = impactPoint;
+        // ── direct hit ────────────────────────────────────────────────────────
+        Collider[] directHits = Physics.OverlapSphere(impactPoint, slamDirectHitRadius, slamHitMask);
+        foreach (Collider hit in directHits)
+            OnSlamDirectHit(hit, impactPoint);
 
-        Collider[] hits = Physics.OverlapSphere(impactPoint, slamAOERadius, slamHitMask);
-
-        foreach (Collider hit in hits)
+        // ── shockwave (hold only) ─────────────────────────────────────────────
+        if (slamHeld)
         {
-            // ── TODO: wire up damage here when HP system is ready ────────────
-            // Example:
-            //   HealthComponent hp = hit.GetComponent<HealthComponent>();
-            //   if (hp != null) hp.TakeDamage(slamDamage, impactPoint);
-            OnSlamHit(hit, impactPoint);
+            float launchForce = Mathf.Min(
+                shockwaveLaunchBase + shockwaveLaunchPerSecond * slamAirTime,
+                shockwaveLaunchMax
+            );
+
+            Collider[] aoeHits = Physics.OverlapSphere(impactPoint, slamAOERadius, slamHitMask);
+            foreach (Collider hit in aoeHits)
+                OnShockwaveHit(hit, impactPoint, launchForce);
+
+            OnSlamImpact(impactPoint, aoeHits.Length, launchForce);
+        }
+        else
+        {
+            OnSlamImpact(impactPoint, 0, 0f);
         }
 
-        // hook: play impact camera shake / shockwave VFX / sound here
-        OnSlamImpact(impactPoint, hits.Length);
+        // ── open slam bounce window ───────────────────────────────────────────
+        slamBounceTimer = slamBounceWindow;
     }
 
-    // ── slam hooks (extend these without touching core logic) ────────────────
+    // ── slam hooks ───────────────────────────────────────────────────────────
 
-    /// <summary>Called the frame the slam initiates. Spawn wind-up VFX here.</summary>
-    void OnSlamStart() { }
-
-    /// <summary>Called for each collider caught in the AOE. Apply damage here.</summary>
-    void OnSlamHit(Collider hit, Vector3 origin)
+    void OnSlamStart()
     {
-        // stub — replace with actual damage call
-        Debug.Log($"[Slam] Hit: {hit.name} | dist: {Vector3.Distance(origin, hit.transform.position):F1}m");
+        Debug.Log("[Slam] Started | held: " + slamHeld);
     }
 
-    /// <summary>Called once on impact. hitCount = enemies in AOE. Trigger shockwave VFX here.</summary>
-    void OnSlamImpact(Vector3 point, int hitCount)
+    void OnSlamDirectHit(Collider hit, Vector3 origin)
     {
-        Debug.Log($"[Slam] Impact at {point} | AOE hits: {hitCount}");
+        // TODO: hit.GetComponent<HealthComponent>()?.TakeDamage(2, origin);
+        Debug.Log($"[Slam] Direct hit: {hit.name}");
+    }
+
+    void OnShockwaveHit(Collider hit, Vector3 origin, float launchForce)
+    {
+        Rigidbody enemyRb = hit.GetComponent<Rigidbody>();
+        if (enemyRb != null)
+            enemyRb.AddForce(Vector3.up * launchForce, ForceMode.Impulse);
+
+        Debug.Log($"[Slam] Shockwave hit: {hit.name} | launch: {launchForce:F1}");
+    }
+
+    void OnSlamImpact(Vector3 point, int hitCount, float launchForce)
+    {
+        Debug.Log($"[Slam] Impact at {point} | shockwave hits: {hitCount} | launch: {launchForce:F1} | airTime: {slamAirTime:F2}s");
     }
 
     // ── dash ─────────────────────────────────────────────────────────────────
@@ -421,9 +523,18 @@ public class PlayerMovement : MonoBehaviour
     void OnDrawGizmosSelected()
     {
         if (!drawSlamGizmo) return;
+
+        // Use last known impact point; fall back to the foot of the player in editor
+        Vector3 origin = lastSlamGizmoPos != Vector3.zero
+            ? lastSlamGizmoPos
+            : transform.position - Vector3.up * (playerHeight * 0.5f);
+
+        // shockwave AOE
         Gizmos.color = new Color(1f, 0.3f, 0f, 0.35f);
-        Gizmos.DrawSphere(lastSlamGizmoPos == Vector3.zero
-                          ? transform.position
-                          : lastSlamGizmoPos, slamAOERadius);
+        Gizmos.DrawSphere(origin, slamAOERadius);
+
+        // direct hit radius
+        Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
+        Gizmos.DrawSphere(origin, slamDirectHitRadius);
     }
 }
