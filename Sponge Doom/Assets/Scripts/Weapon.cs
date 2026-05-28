@@ -42,6 +42,10 @@ public class Weapon : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip fireSound;
 
+    [Header("Camera Reference")]
+    [Tooltip("The player's view camera (PlayerCam). Used for the dropped-gun throw direction.")]
+    public Transform playerCam;
+
     private Vector3 originalWeaponPosition;
     private Quaternion originalWeaponRotation;
 
@@ -67,6 +71,16 @@ public class Weapon : MonoBehaviour
         // Stores the original position of the weapon to ensure accurate recoil calculations.
         originalWeaponPosition = weaponModel.localPosition;
         originalWeaponRotation = weaponModel.localRotation;
+
+        // Fallback: if no PlayerCam was wired up in the Inspector, try to find one.
+        // Looks up the parent chain first (works when the gun is parented under PlayerCam),
+        // then falls back to Camera.main so the script still runs in test scenes.
+        if (playerCam == null)
+        {
+            var cam = GetComponentInParent<Camera>();
+            if (cam != null) playerCam = cam.transform;
+            else if (Camera.main != null) playerCam = Camera.main.transform;
+        }
     }
 
     void Update()
@@ -161,13 +175,44 @@ public class Weapon : MonoBehaviour
         foreach (var script in droppedGun.GetComponents<MonoBehaviour>())
             Destroy(script);
 
+        droppedGun.SetActive(false); // keep inactive so physics doesn't tick on it during setup
         droppedGun.transform.SetParent(null);
-        droppedGun.transform.position = weaponModel.parent.TransformPoint(weaponModel.localPosition);
+
+        // Spawn forward of the player's view by a half metre so the gun doesn't appear
+        // inside the player capsule (overlap resolution would otherwise shove it
+        // straight through the thin platform underfoot).
+        Vector3 forwardDir = playerCam != null ? playerCam.forward : transform.forward;
+        Vector3 muzzleWorld = weaponModel.parent.TransformPoint(weaponModel.localPosition);
+        droppedGun.transform.position = muzzleWorld + forwardDir * 0.5f;
         droppedGun.transform.rotation = weaponModel.parent.rotation * weaponModel.localRotation;
+
+        // Make sure the prefab's collider is healthy and won't be ignored due to layer matrix.
+        var dropCol = droppedGun.GetComponent<Collider>();
+        if (dropCol == null)
+        {
+            // Prefab was edited to remove the collider — give it a fall-back BoxCollider so it can land.
+            var bc = droppedGun.AddComponent<BoxCollider>();
+            var mf = droppedGun.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null) { bc.center = mf.sharedMesh.bounds.center; bc.size = mf.sharedMesh.bounds.size; }
+            dropCol = bc;
+        }
+        dropCol.enabled = true;
+        dropCol.isTrigger = false;
+
+        // Don't let the dropped gun bounce off the player who threw it.
+        var playerColliders = playerCam != null ? playerCam.GetComponentInParent<Transform>().root.GetComponentsInChildren<Collider>(true) : null;
+        if (playerColliders != null)
+            foreach (var pc in playerColliders) if (pc != null && pc.enabled && !pc.isTrigger) Physics.IgnoreCollision(dropCol, pc, true);
 
         Rigidbody rb = droppedGun.AddComponent<Rigidbody>();
         rb.mass = 1f;
-        rb.linearVelocity = Camera.main.transform.forward * throwForwardAmount + Vector3.up * 1.5f;
+        // Continuous CD so the thin gun collider can't tunnel through thin platforms
+        // while it's flying at velocity.
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.linearVelocity = forwardDir * throwForwardAmount + Vector3.up * 1.5f;
+
+        droppedGun.SetActive(true);
         rb.angularVelocity = new Vector3(
             Random.Range(3f, 6f),
             Random.Range(-3f, 3f),
@@ -247,13 +292,26 @@ public class Weapon : MonoBehaviour
             Quaternion spreadRotation = bulletSpawn.rotation * Quaternion.Euler(ySpread, xSpread, 0f);
             Vector3 direction = spreadRotation * Vector3.forward;
 
-            // Cast the ray � maxRange manages the pellet distance
-            float maxRange = 15f; 
+            // Cast the ray � maxRange manages the pellet distance
+            float maxRange = 15f;
+            Vector3 tracerEnd; // where the visible tracer line should end
             if (Physics.Raycast(bulletSpawn.position, direction, out RaycastHit hit, maxRange))
             {
-                // Distance-based damage falloff 
+                tracerEnd = hit.point;
+
+                // Skip self-damage: if the pellet hit the player (or any child collider on the
+                // player rig), draw the tracer to the impact point but don't deal damage.
+                bool hitSelf = hit.collider.CompareTag("Player")
+                    || (hit.collider.transform.root != null && hit.collider.transform.root.CompareTag("Player"));
+                if (hitSelf)
+                {
+                    BulletTracer.Spawn(bulletSpawn.position, tracerEnd);
+                    continue;
+                }
+
+                // Distance-based damage falloff
                 float t = Mathf.Clamp01(hit.distance / maxRange);
-                float damage = Mathf.Lerp(20f, 5f, t); 
+                float damage = Mathf.Lerp(20f, 5f, t);
 
                 if (hit.collider.CompareTag("Target"))
                 {
@@ -267,8 +325,25 @@ public class Weapon : MonoBehaviour
                             RegisterCriticalHit();
                     }
                 }
+                else
+                {
+                    // Generic damage: anything implementing IDamageable (enemies, props) takes a hit.
+                    // GetComponentInParent so a child collider on the model still routes to the FishEnemy root.
+                    IDamageable dmg = hit.collider.GetComponentInParent<IDamageable>();
+                    if (dmg != null && !dmg.IsDead)
+                    {
+                        dmg.TakeDamage(damage, hit.point, direction);
+                    }
+                }
             }
-           
+            else
+            {
+                // Nothing hit — draw the tracer out to the pellet's max range so the streak is still visible.
+                tracerEnd = bulletSpawn.position + direction * maxRange;
+            }
+
+            // One short LineRenderer streak per pellet. Self-destroys after fade.
+            BulletTracer.Spawn(bulletSpawn.position, tracerEnd);
         }
 
         // Spike crosshair spread

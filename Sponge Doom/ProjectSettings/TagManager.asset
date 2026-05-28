@@ -5,14 +5,15 @@ TagManager:
   serializedVersion: 3
   tags:
   - Target
+  - Platform
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Ground
   - Water
   - UI
-  - 
+  - WallRide
   - 
   - 
   - 
