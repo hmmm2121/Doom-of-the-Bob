@@ -11,16 +11,12 @@ public class PlayerHUD : MonoBehaviour
 
     [Header("Damage vignette")]
     public Color vignetteColor = new Color(0.6f, 0f, 0f, 1f);
-    [Tooltip("Alpha added by a single hit.")]
     public float flashOnHit = 0.6f;
-    [Tooltip("Alpha units faded per second after a hit.")]
     public float flashDecay = 2f;
 
     [Header("Low-health sustain")]
-    [Tooltip("Below this health fraction the screen stays tinted red.")]
     public float lowHealthThreshold = 0.5f;
     public float maxLowHealthAlpha = 0.55f;
-    [Tooltip("Heartbeat pulse magnitude added when near death.")]
     public float pulseAmplitude = 0.12f;
     public float pulseSpeed = 4f;
 
@@ -47,7 +43,6 @@ public class PlayerHUD : MonoBehaviour
         if (damageVignette != null) SetVignetteAlpha(0f);
     }
 
-    // Init bar in Start so PlayerHealth.Awake has already set currentHealth = maxHealth.
     void Start()
     {
         if (health != null) OnHealthChanged(health.currentHealth, health.maxHealth);
@@ -88,7 +83,7 @@ public class PlayerHUD : MonoBehaviour
         float lowTint = 0f;
         if (frac < lowHealthThreshold)
         {
-            float t = Mathf.InverseLerp(lowHealthThreshold, 0f, frac); // 0..1 as HP drops
+            float t = Mathf.InverseLerp(lowHealthThreshold, 0f, frac);
             lowTint = t * maxLowHealthAlpha;
             lowTint += Mathf.Abs(Mathf.Sin(Time.time * pulseSpeed)) * pulseAmplitude * t;
         }

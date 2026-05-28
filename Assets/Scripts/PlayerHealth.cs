@@ -10,6 +10,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [Header("Invulnerability")]
     public float iFrames = 0.4f;
 
+    [Header("Knockback")]
+    public float knockbackForce = 8f;
+
     [Header("Events")]
     public UnityEvent<float, float> onHealthChanged;
     public UnityEvent onDamaged;
@@ -17,6 +20,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private float _iTimer;
     private bool _isDead;
+    private Rigidbody _rb;
 
     public bool IsDead => _isDead;
     public float HealthFraction => maxHealth > 0f ? currentHealth / maxHealth : 0f;
@@ -24,6 +28,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     void Awake()
     {
         currentHealth = maxHealth;
+        _rb = GetComponent<Rigidbody>();
     }
 
     void Update()
@@ -36,6 +41,12 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (_isDead || _iTimer > 0f || amount <= 0f) return;
         currentHealth = Mathf.Max(0f, currentHealth - amount);
         _iTimer = iFrames;
+        if (_rb != null)
+        {
+            Vector3 dir = hitDirection; dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+                _rb.AddForce(dir.normalized * knockbackForce, ForceMode.Impulse);
+        }
         onDamaged?.Invoke();
         onHealthChanged?.Invoke(currentHealth, maxHealth);
         if (currentHealth <= 0f) Die();

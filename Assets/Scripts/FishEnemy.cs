@@ -43,7 +43,6 @@ public class FishEnemy : MonoBehaviour, IDamageable
     public float repathInterval = 0.2f;
 
     [Header("Animation")]
-    // Run clip authored stride speed (m/s). Animator playback is scaled by velocity/this to kill foot-skating.
     public float animBaseRunSpeed = 1.5f;
     public float animSpeedMin = 0.8f;
     public float animSpeedMax = 2.5f;
@@ -57,6 +56,7 @@ public class FishEnemy : MonoBehaviour, IDamageable
 
     private Animator _animator;
     private NavMeshAgent _agent;
+    private HitFlash _hitFlash;
     private float _repathTimer;
     private float _hitStunTimer;
     private float _damageCdTimer;
@@ -79,6 +79,7 @@ public class FishEnemy : MonoBehaviour, IDamageable
     {
         _animator = GetComponent<Animator>();
         _agent = GetComponent<NavMeshAgent>();
+        _hitFlash = GetComponent<HitFlash>();
         currentHealth = maxHealth;
         _patrolHome = transform.position;
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
@@ -93,8 +94,6 @@ public class FishEnemy : MonoBehaviour, IDamageable
             if (p != null) player = p.transform;
         }
 
-        // Don't physically shove the player's CharacterController (contact damage is
-        // distance-based). Prevents enemies crowding the player through thin geometry.
         if (player != null)
         {
             var myCol = GetComponent<Collider>();
@@ -153,7 +152,7 @@ public class FishEnemy : MonoBehaviour, IDamageable
             case State.Chase:
                 _agent.isStopped = false;
                 _agent.speed = chaseSpeed;
-                _agent.stoppingDistance = 0.4f; // get up close
+                _agent.stoppingDistance = 0.4f;
                 break;
         }
     }
@@ -165,7 +164,6 @@ public class FishEnemy : MonoBehaviour, IDamageable
         {
             case State.Chase:
                 if (_repathTimer <= 0f) { _repathTimer = repathInterval; _agent.SetDestination(player.position); }
-                // Contact damage when close enough
                 if (distToPlayer <= contactRange && _damageCdTimer <= 0f) ApplyContactDamage();
                 break;
 
@@ -183,10 +181,8 @@ public class FishEnemy : MonoBehaviour, IDamageable
     {
         Vector3 v = _agent != null ? _agent.velocity : Vector3.zero;
         float horiz = new Vector2(v.x, v.z).magnitude;
-        // Speed is in m/s; blend tree thresholds are authored in m/s (idle 0, walk 1.5, run 4).
         _animator.SetFloat(P_Speed, horiz, 0.1f, Time.deltaTime);
 
-        // Scale clip playback so foot stride matches actual translation (no skating).
         float playback = horiz > 0.05f
             ? Mathf.Clamp(horiz / Mathf.Max(0.01f, animBaseRunSpeed), animSpeedMin, animSpeedMax)
             : 1f;
@@ -244,6 +240,7 @@ public class FishEnemy : MonoBehaviour, IDamageable
         if (_isDead) return;
         currentHealth -= amount;
         _hasSeenPlayer = true;
+        if (_hitFlash != null) _hitFlash.Flash();
         if (currentHealth <= 0f) { Die(); return; }
         _hitStunTimer = hitStunDuration;
         _agent.isStopped = true;

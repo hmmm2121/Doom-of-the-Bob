@@ -1522,6 +1522,7 @@ GameObject:
   - component: {fileID: 7293470887861955797}
   - component: {fileID: 5890830888830180620}
   - component: {fileID: 6419958972338345433}
+  - component: {fileID: 7308065604810002882}
   m_Layer: 0
   m_Name: Fish30_Enemy
   m_TagString: Untagged
@@ -1776,6 +1777,21 @@ MonoBehaviour:
   sfxAttack: {fileID: 0}
   sfxHit: {fileID: 0}
   sfxDeath: {fileID: 0}
+--- !u!114 &7308065604810002882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3722601066971706851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ee0c67853e9399498b315672b94ba76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  flashDuration: 0.08
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  intensity: 1
 --- !u!1 &4081141889818237896
 GameObject:
   m_ObjectHideFlags: 0
