@@ -13,6 +13,7 @@ public class BossCutsceneDirector : MonoBehaviour
     [Header("Hide during cutscene")]
     public GameObject gunVisual;
     public GameObject crosshair;
+    public GameObject[] hudToHide;   // ammo UI, health bar, etc.
 
     [Header("Framing")]
     public float lookAtHeight = 1.6f;
@@ -39,6 +40,8 @@ public class BossCutsceneDirector : MonoBehaviour
         if (weapon != null) weapon.enabled = false;
         if (gunVisual != null) gunVisual.SetActive(false);
         if (crosshair != null) crosshair.SetActive(false);
+        if (hudToHide != null)
+            foreach (var h in hudToHide) if (h != null) h.SetActive(false);
 
         Vector3 startLocalPos = cameraTransform.localPosition;
         Quaternion startLocalRot = cameraTransform.localRotation;
@@ -79,6 +82,8 @@ public class BossCutsceneDirector : MonoBehaviour
         if (weapon != null) weapon.enabled = true;
         if (gunVisual != null) gunVisual.SetActive(true);
         if (crosshair != null) crosshair.SetActive(true);
+        if (hudToHide != null)
+            foreach (var h in hudToHide) if (h != null) h.SetActive(true);
 
         patrick.BeginFight();
     }

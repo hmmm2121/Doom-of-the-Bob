@@ -9,6 +9,10 @@ namespace Official
         public float maxHealth = 350f;
         public float currentHealth;
         public bool IsDead => currentHealth <= 0f;
+        public float HealthFraction => Mathf.Clamp01(currentHealth / Mathf.Max(1f, maxHealth));
+
+        [Header("Hit Flash")]
+        public HitFlash hitFlash;
 
 
         [Header("Teleport")]
@@ -64,6 +68,8 @@ namespace Official
             teleportTimer = teleportInterval;
             machineGunTimer = machineGunInterval;
             circleShootTimer = circleShootInterval;
+
+            if (hitFlash == null) hitFlash = GetComponentInChildren<HitFlash>();
 
             if (rotationTarget != null)
                 parentChildOffset = rotationTarget.position - transform.position;
@@ -232,6 +238,7 @@ namespace Official
         {
             if (IsDead) return;
             currentHealth -= amount;
+            if (hitFlash != null) hitFlash.Flash();
             Debug.Log($"[DoodleBob] took {amount} damage, hp: {currentHealth}");
 
             if (!isMachineGunning && currentHealth <= 80f)

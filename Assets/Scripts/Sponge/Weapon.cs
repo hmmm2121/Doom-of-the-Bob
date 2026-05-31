@@ -4,8 +4,12 @@ namespace Sponge
     using UnityEngine.InputSystem;
     using System.Collections;
 
-    public class Weapon : MonoBehaviour
+    public class Weapon : MonoBehaviour, global::IWeaponAmmo
     {
+        public int CurrentMag => currentMagAmmo;
+        public int CurrentReserve => currentReserveAmmo;
+        public int MaxMag => maxMagAmmo;
+
         public GameObject droppedGunPrefab;
         public Transform bulletSpawn;
 

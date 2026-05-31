@@ -23,27 +23,31 @@ namespace Sponge
         public Color emptyShellColor = new Color(0.78f, 0.52f, 0.04f, 0.2f);
         public Color lowShellColor = new Color(0.91f, 0.19f, 0.19f);
 
-        private Weapon weapon;
+        private IWeaponAmmo weapon;
 
         void Start()
         {
-            weapon = FindObjectOfType<Weapon>();
+            // works with any weapon (global Weapon or Sponge.Weapon)
+            foreach (var mb in FindObjectsOfType<MonoBehaviour>())
+            {
+                if (mb is IWeaponAmmo wa) { weapon = wa; break; }
+            }
         }
 
         void Update()
         {
             if (weapon == null) return;
 
-            int mag = weapon.currentMagAmmo;
-            int reserve = weapon.currentReserveAmmo;
+            int mag = weapon.CurrentMag;
+            int reserve = weapon.CurrentReserve;
 
             magAmmoText.text = mag.ToString();
             reserveAmmoText.text = "| " + reserve.ToString();
 
             // calculate how empty the mag is where 0 means the mag is full and 1 means the mag is empty
             float emptyRatio = 0f;
-            if (weapon.maxMagAmmo > 0)
-                emptyRatio = 1f - ((float)mag / (float)weapon.maxMagAmmo);
+            if (weapon.MaxMag > 0)
+                emptyRatio = 1f - ((float)mag / (float)weapon.MaxMag);
 
             // gradually go from normal color to red as ammo decreases
             Color textColor = Color.Lerp(normalTextColor, lowTextColor, emptyRatio);

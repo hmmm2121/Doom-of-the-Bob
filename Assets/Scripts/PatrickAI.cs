@@ -48,6 +48,10 @@ public class PatrickAI : MonoBehaviour, IDamageable
     public float hitStunDuration = 0.3f;
     public float deathDespawnDelay = 3f;
 
+    [Header("Victory / Next Level")]
+    public string nextSceneName = "";   // empty -> loads next build index
+    public float winLoadDelay = 4f;
+
     [Header("Animation")]
     public float animBaseRunSpeed = 1.5f;
     public float animSpeedMin = 0.8f;
@@ -317,7 +321,16 @@ public class PatrickAI : MonoBehaviour, IDamageable
         _animator.ResetTrigger(P_Die);
         _animator.SetTrigger(P_Die);
         PlaySfx(sfxDeath);
-        Destroy(gameObject, deathDespawnDelay);
+        Invoke(nameof(LoadNextLevel), winLoadDelay);
+    }
+
+    void LoadNextLevel()
+    {
+        if (!string.IsNullOrEmpty(nextSceneName))
+            UnityEngine.SceneManagement.SceneManager.LoadScene(nextSceneName);
+        else
+            UnityEngine.SceneManagement.SceneManager.LoadScene(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex + 1);
     }
 
     void PlaySfx(AudioClip clip)

@@ -28,6 +28,10 @@ namespace Official
 
         // slam
         public float slamInstantDownVelocity = 40f;
+        public float slamAccel = 300f;            // smooth slam descent ramp (matches Level 4)
+        public float slamAOEDamage = 20f;         // slam damage (direct + shockwave)
+        public GameObject slamImpactEffect;       // VFX spawned at impact (SlamImpactFX prefab)
+        public bool autoBounce = true;            // bounce automatically on impact, no extra button
         public float slamAOERadius = 4f;
         public LayerMask slamHitMask; // layers it affects
         public float slamDirectHitRadius = 1.2f;
@@ -128,9 +132,18 @@ namespace Official
 
         void FixedUpdate()
         {
+            if (isSlamming) SlamDescent();
             MovePlayer();
             HandleJump();
             BetterGravity();
+        }
+
+        // Ramp downward speed toward slam velocity instead of snapping -> smooth slam (Level 4)
+        void SlamDescent()
+        {
+            float vy = Mathf.MoveTowards(rb.linearVelocity.y, -slamInstantDownVelocity,
+                                         slamAccel * Time.fixedDeltaTime);
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, vy, rb.linearVelocity.z);
         }
 
 
@@ -337,17 +350,9 @@ namespace Official
             slamAirTime = 0f;
             inSlamBounce = false;
 
-            rb.linearVelocity = new Vector3(
-                rb.linearVelocity.x,
-                -slamInstantDownVelocity,
-                rb.linearVelocity.z
-            );
-
-            // shrink player model for realism and make sure he doesnt clip through the floor
-            float scaleChange = startYScale - crouchYScale;
-            transform.localScale = new Vector3(transform.localScale.x, crouchYScale,
-                                               transform.localScale.z);
-            transform.position += Vector3.up * (scaleChange * 0.5f);
+            // cancel any upward velocity; SlamDescent() ramps the downward speed smoothly from here
+            if (rb.linearVelocity.y > 0f)
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
             OnSlamStart();
         }
@@ -356,7 +361,6 @@ namespace Official
         {
             isSlamming = false;
 
-            // checks to end the slam before falling too far down and causing clipping through the floor
             Vector3 impactPoint;
             if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit groundHit,
                                 playerHeight, whatIsGround))
@@ -370,17 +374,21 @@ namespace Official
 
             lastSlamGizmoPos = impactPoint;
 
-            // keep momentum 
+            // keep some momentum
             rb.linearVelocity = new Vector3(
                 rb.linearVelocity.x * slamLandingMomentumRetain,
                 0f,
                 rb.linearVelocity.z * slamLandingMomentumRetain
             );
 
-            float scaleChange = startYScale - crouchYScale;
-            transform.localScale = new Vector3(transform.localScale.x, startYScale,
-                                               transform.localScale.z);
-            transform.position += Vector3.up * (scaleChange * 0.5f);
+            // impact VFX
+            if (slamImpactEffect != null)
+            {
+                GameObject fx = Instantiate(slamImpactEffect, impactPoint, Quaternion.identity);
+                var eff = fx.GetComponent<SlamImpactEffect>();
+                if (eff != null) eff.radius = slamAOERadius;
+                Destroy(fx, 3f);
+            }
 
             // direct hit
             Collider[] directHits = Physics.OverlapSphere(impactPoint, slamDirectHitRadius, slamHitMask);
@@ -406,7 +414,20 @@ namespace Official
                 OnSlamImpact(impactPoint, 0, 0f);
             }
 
-            slamBounceTimer = slamBounceWindow;
+            // automatic bounce on impact, scaled by airtime (no button needed)
+            if (autoBounce)
+            {
+                float bounceForce = Mathf.Min(
+                    slamBounceBaseForce + slamBounceForcePerSecond * slamAirTime,
+                    slamBounceMaxForce
+                );
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+                rb.AddForce(Vector3.up * bounceForce, ForceMode.Impulse);
+            }
+            else
+            {
+                slamBounceTimer = slamBounceWindow;
+            }
         }
 
 
@@ -421,7 +442,7 @@ namespace Official
             if (damageable == null || damageable.IsDead) return;
 
             Vector3 dir = (hit.transform.position - origin).normalized;
-            damageable.TakeDamage(2f, origin, dir);
+            damageable.TakeDamage(slamAOEDamage, origin, dir);
             Debug.Log($"[Slam] Direct hit: {hit.name}");
         }
 
@@ -431,8 +452,7 @@ namespace Official
             if (damageable != null && !damageable.IsDead)
             {
                 Vector3 dir = (hit.transform.position - origin).normalized;
-                float damage = Mathf.Min(shockwaveLaunchBase + shockwaveLaunchPerSecond * slamAirTime, shockwaveLaunchMax);
-                damageable.TakeDamage(damage, origin, dir);
+                damageable.TakeDamage(slamAOEDamage, origin, dir);
             }
 
             Rigidbody enemyRb = hit.GetComponent<Rigidbody>();
