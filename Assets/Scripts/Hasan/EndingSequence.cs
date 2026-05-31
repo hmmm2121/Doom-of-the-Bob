@@ -98,6 +98,8 @@ private IEnumerator PlaySequence()
         {
             sequenceStarted = true;
 
+            if (RunTimer.Instance != null) RunTimer.Instance.FinishRun();
+
             if (promptUI != null) promptUI.SetActive(false);
 
             DisablePlayer();
@@ -110,6 +112,12 @@ private IEnumerator PlaySequence()
 
             yield return PlayClip(cutsceneClip);
             yield return PlayClip(creditsClip);
+
+            // Tear down the full-screen overlay, else (DontDestroyOnLoad) it survives the
+            // scene load and hides the main menu behind a black canvas.
+            if (videoPlayer != null) videoPlayer.Stop();
+            if (renderTexture != null) renderTexture.Release();
+            if (videoCanvas != null) Destroy(videoCanvas.gameObject);
 
             SceneManager.LoadScene(mainMenuScene);
         }

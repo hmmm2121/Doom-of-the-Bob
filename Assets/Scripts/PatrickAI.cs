@@ -30,6 +30,7 @@ public class PatrickAI : MonoBehaviour, IDamageable
     [Header("Jump down")]
     public float jumpDuration = 1.2f;
     public float jumpArcHeight = 4f;
+    public float standDelay = 0.5f;
 
     [Header("Melee")]
     public float chaseSpeed = 3.5f;
@@ -235,7 +236,16 @@ public class PatrickAI : MonoBehaviour, IDamageable
         _agent.enabled = true;
         if (NavMesh.SamplePosition(transform.position, out var navHit, 5f, NavMesh.AllAreas))
             _agent.Warp(navHit.position);
-        _agent.isStopped = false;
+        _agent.isStopped = true;
+        StartCoroutine(StandThenChase());
+    }
+
+    IEnumerator StandThenChase()
+    {
+        // stay in JumpingDown phase so Speed stays ~0 and Idle plays (settle on feet)
+        yield return new WaitForSeconds(standDelay);
+        if (_phase == Phase.Dead) yield break;
+        if (_agent.enabled && _agent.isOnNavMesh) _agent.isStopped = false;
         _phase = Phase.Melee;
     }
 
