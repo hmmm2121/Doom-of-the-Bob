@@ -24,6 +24,8 @@ public class RunTimer : MonoBehaviour
         // Persistent singleton: keep the first instance, drop duplicates from later scenes.
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        // DontDestroyOnLoad only works on root objects; detach if we're a child.
+        if (transform.parent != null) transform.SetParent(null, true);
         DontDestroyOnLoad(gameObject);
         _best = PlayerPrefs.GetFloat(bestTimePrefKey, -1f);
         SceneManager.sceneLoaded += OnSceneLoaded;
