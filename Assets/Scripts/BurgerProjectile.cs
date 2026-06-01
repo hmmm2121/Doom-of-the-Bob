@@ -4,7 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class BurgerProjectile : MonoBehaviour
 {
-    public float damage = 15f;
+    public float damage = 10f;
     public float lifetime = 6f;
     public string playerTag = "Player";
     public GameObject hitVfx;

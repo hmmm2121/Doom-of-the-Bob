@@ -35,13 +35,13 @@ public class PatrickAI : MonoBehaviour, IDamageable
     [Header("Melee")]
     public float chaseSpeed = 3.5f;
     public float meleeRange = 2.5f;
-    public float meleeDamage = 18f;
+    public float meleeDamage = 10f;
     public float meleeCooldown = 1.8f;
 
     [Header("Health")]
-    public float maxHealth = 250f;
+    public float maxHealth = 350f;
     public float currentHealth;
-    [Range(0.05f, 1f)] public float damageTakenMultiplier = 0.5f;
+    [Range(0.05f, 1f)] public float damageTakenMultiplier = 1f;
 
     public float HealthFraction => maxHealth > 0f ? Mathf.Clamp01(currentHealth / maxHealth) : 0f;
 

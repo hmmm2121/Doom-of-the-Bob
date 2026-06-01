@@ -6,7 +6,7 @@ namespace Official
     public class DoodleBobAI : MonoBehaviour, IDamageable
     {
         [Header("HP")]
-        public float maxHealth = 350f;
+        public float maxHealth = 2000f;
         public float currentHealth;
         public bool IsDead => currentHealth <= 0f;
         public float HealthFraction => Mathf.Clamp01(currentHealth / Mathf.Max(1f, maxHealth));

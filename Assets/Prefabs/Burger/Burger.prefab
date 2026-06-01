@@ -181,8 +181,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 91078f9d41fd0bb419816231c378f5f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 15
+  damage: 10
   lifetime: 6
   playerTag: Player
   hitVfx: {fileID: 0}
   hitSfx: {fileID: 0}
+  owner: {fileID: 0}
+  armingDelay: 0.15

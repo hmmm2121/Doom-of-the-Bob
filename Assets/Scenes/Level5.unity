@@ -229656,6 +229656,8 @@ MonoBehaviour:
   slamAccel: 300
   slamAOEDamage: 20
   slamImpactEffect: {fileID: 5348885522317665892, guid: 18d6decf0b4d6b642aeaefdffd665628, type: 3}
+  slamSound: {fileID: 8300000, guid: 5aa407cf7422168418d8ef949c3b0a87, type: 3}
+  slamSoundVolume: 0.3
   autoBounce: 1
   slamAOERadius: 2.5
   slamHitMask:
@@ -231975,7 +231977,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 2e5466085ab5a1e4286b466bf9bb08a8, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.5
+  m_Volume: 1
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -260311,7 +260313,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b31c76f768a6f8e47b3ad4fd743149e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoodleBobAI
-  maxHealth: 350
+  maxHealth: 2000
   currentHealth: 350
   hitFlash: {fileID: 1132556421}
   teleportInterval: 0

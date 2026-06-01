@@ -6,7 +6,7 @@ namespace Official
     {
         public Vector3 moveDirection;
         public float speed = 15f;
-        public float damage = 10f;
+        public float damage = 18f;
 
         void Update()
         {
