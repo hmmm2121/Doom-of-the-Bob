@@ -1241,7 +1241,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_Pivot.x
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_Pivot.y
@@ -1249,7 +1249,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_AnchorMax.y
@@ -1257,7 +1257,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_AnchorMin.x
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_AnchorMin.y
@@ -1301,11 +1301,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 40
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 130
+      value: 60
       objectReference: {fileID: 0}
     - target: {fileID: 4678748914483376007, guid: 57748d24ea5ac544abf213c114677df3, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -5090,6 +5090,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1364145734}
   - component: {fileID: 1364145733}
+  - component: {fileID: 1364145735}
   m_Layer: 0
   m_Name: LevelMusic
   m_TagString: Untagged
@@ -5209,6 +5210,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1364145735
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1364145732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7ff2f5139c7c094ab176432c382589f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1370687249
 GameObject:
   m_ObjectHideFlags: 0

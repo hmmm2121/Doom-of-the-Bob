@@ -30,6 +30,8 @@ namespace Sponge
         public float slamAccel = 300f;          // smooth slam descent ramp (matches Level 4)
         public float slamAOEDamage = 20f;       // slam damage (direct + shockwave)
         public GameObject slamImpactEffect;     // VFX spawned at impact (SlamImpactFX prefab)
+        public AudioClip slamSound;             // SFX played at impact point
+        public float slamSoundVolume = 1f;
         public bool autoBounce = true;          // bounce automatically on impact, no extra button
         public float slamAOERadius = 4f;
         public LayerMask slamHitMask;
@@ -367,6 +369,9 @@ namespace Sponge
                 0f,
                 rb.linearVelocity.z * slamLandingMomentumRetain
             );
+
+            // impact SFX
+            if (slamSound != null) AudioSource.PlayClipAtPoint(slamSound, impactPoint, slamSoundVolume);
 
             // impact VFX
             if (slamImpactEffect != null)

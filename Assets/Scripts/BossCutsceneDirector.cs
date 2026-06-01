@@ -36,6 +36,7 @@ public class BossCutsceneDirector : MonoBehaviour
 
     IEnumerator Run()
     {
+        Official.MusicManager.PauseMusic();
         if (movementController != null) movementController.enabled = false;
         if (weapon != null) weapon.enabled = false;
         if (gunVisual != null) gunVisual.SetActive(false);
@@ -85,6 +86,7 @@ public class BossCutsceneDirector : MonoBehaviour
         if (hudToHide != null)
             foreach (var h in hudToHide) if (h != null) h.SetActive(true);
 
+        Official.MusicManager.ResumeMusic();
         patrick.BeginFight();
     }
 

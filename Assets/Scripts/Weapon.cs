@@ -225,22 +225,41 @@ public class Weapon : MonoBehaviour, IWeaponAmmo
 
         CrosshairUI crosshair = FindFirstObjectByType<CrosshairUI>();
 
+        // Hitscan from the camera eye (crosshair center), not the muzzle.
+        // The muzzle sits ~0.7m ahead and offset from the camera, creating a
+        // point-blank dead zone where near enemies are behind/beside the ray
+        // origin. Casting from the eye fixes close-range shots.
+        Camera cam = Camera.main;
+        Vector3 rayOrigin = cam != null ? cam.transform.position : bulletSpawn.position;
+        Quaternion aimRotation = cam != null ? cam.transform.rotation : bulletSpawn.rotation;
+        Transform owner = transform.root; // player rig — ignore own colliders
+
         for (int i = 0; i < pelletCount; i++)
         {
             float xSpread = Random.Range(-spreadAngle, spreadAngle);
             float ySpread = Random.Range(-spreadAngle, spreadAngle);
 
-            Quaternion spreadRotation = bulletSpawn.rotation * Quaternion.Euler(ySpread, xSpread, 0f);
+            Quaternion spreadRotation = aimRotation * Quaternion.Euler(ySpread, xSpread, 0f);
             Vector3 direction = spreadRotation * Vector3.forward;
 
-            if (Physics.Raycast(bulletSpawn.position, direction, out RaycastHit hit, maxRange, hitMask, QueryTriggerInteraction.Ignore))
+            RaycastHit[] hits = Physics.RaycastAll(rayOrigin, direction, maxRange, hitMask, QueryTriggerInteraction.Ignore);
+            if (hits.Length == 0) continue;
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            foreach (RaycastHit hit in hits)
             {
+                // Skip the player's own colliders so the eye-origin ray never
+                // self-hits and never gets blocked by the player capsule.
+                if (owner != null && hit.collider.transform.IsChildOf(owner)) continue;
+
                 float t = Mathf.Clamp01(hit.distance / maxRange);
                 float damage = Mathf.Lerp(maxDamage, minDamage, t);
 
                 IDamageable dmg = hit.collider.GetComponentInParent<IDamageable>();
                 if (dmg != null && !dmg.IsDead)
                     dmg.TakeDamage(damage, hit.point, direction);
+
+                break; // first solid hit (enemy or wall) stops the pellet
             }
         }
 

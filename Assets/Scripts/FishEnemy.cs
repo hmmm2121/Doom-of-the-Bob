@@ -28,7 +28,7 @@ public class FishEnemy : MonoBehaviour, IDamageable
     public float patrolWaitMax = 4f;
 
     [Header("Health")]
-    public float maxHealth = 40f;
+    public float maxHealth = 1f;
     public float currentHealth;
 
     [Header("Contact damage")]

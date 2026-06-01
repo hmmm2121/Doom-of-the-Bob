@@ -98,6 +98,9 @@ private IEnumerator PlaySequence()
         {
             sequenceStarted = true;
 
+            // Kill level music so it doesn't play over the cutscene/credits video audio.
+            MusicManager.StopMusic();
+
             if (RunTimer.Instance != null) RunTimer.Instance.FinishRun();
 
             if (promptUI != null) promptUI.SetActive(false);

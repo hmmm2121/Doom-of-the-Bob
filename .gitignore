@@ -108,3 +108,5 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
 docs/
+# Generated knowledge graph (graphify)
+graphify-out/

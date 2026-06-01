@@ -28,6 +28,8 @@ public class PlayerMovement : MonoBehaviour
     public float slamAccel = 300f;          // how fast slam descent ramps up (smooth, not an instant snap)
     public float slamAOEDamage = 20f;       // slam damage (AOE)
     public GameObject slamImpactEffect;     // VFX spawned at impact point
+    public AudioClip slamSound;             // SFX played at impact point
+    public float slamSoundVolume = 1f;
     public float slamAOERadius = 4f;
     public LayerMask slamHitMask;
     public float slamDirectHitRadius = 1.2f;
@@ -365,6 +367,9 @@ public class PlayerMovement : MonoBehaviour
             0f,
             rb.linearVelocity.z * slamLandingMomentumRetain
         );
+
+        // impact SFX
+        if (slamSound != null) AudioSource.PlayClipAtPoint(slamSound, impactPoint, slamSoundVolume);
 
         // impact VFX
         if (slamImpactEffect != null)

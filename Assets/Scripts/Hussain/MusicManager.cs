@@ -1,40 +1,31 @@
 namespace Official
 {
     using UnityEngine;
-    using UnityEngine.SceneManagement;
 
+    // Per-scene music controller. Lives on the scene's music AudioSource object
+    // (e.g. "MainMenu Theme" in menus, "LevelMusic" in levels). NOT persistent —
+    // each scene owns its own music, so menu music never bleeds into levels.
+    // Exposes a static handle for pausing/stopping during pause menus and cutscenes.
+    [RequireComponent(typeof(AudioSource))]
     public class MusicManager : MonoBehaviour
     {
-        private static MusicManager instance;
-        private AudioSource audioSource;
+        public static MusicManager Current { get; private set; }
 
-        public AudioClip menuMusic;
-        public AudioClip levelMusic;
+        private AudioSource audioSource;
 
         void Awake()
         {
-            if (instance != null) 
-            { 
-                Destroy(gameObject); return; 
-            }
-            instance = this;
-            DontDestroyOnLoad(gameObject);
             audioSource = GetComponent<AudioSource>();
-            SceneManager.sceneLoaded += OnSceneLoaded;
+            Current = this;
         }
 
-        void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        void OnDestroy()
         {
-            bool isLevel = GameObject.FindWithTag("GameController");
-            AudioClip targetClip = isLevel ? levelMusic : menuMusic;
-
-            if (audioSource.clip != targetClip)
-            {
-                audioSource.clip = targetClip;
-                audioSource.Play();
-            }
+            if (Current == this) Current = null;
         }
-        public static void PauseMusic() => instance.audioSource.Pause();
-        public static void ResumeMusic() => instance.audioSource.UnPause();
+
+        public static void PauseMusic()  { if (Current != null && Current.audioSource != null) Current.audioSource.Pause(); }
+        public static void ResumeMusic() { if (Current != null && Current.audioSource != null) Current.audioSource.UnPause(); }
+        public static void StopMusic()   { if (Current != null && Current.audioSource != null) Current.audioSource.Stop(); }
     }
 }
